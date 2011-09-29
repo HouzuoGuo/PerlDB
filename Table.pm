@@ -1,3 +1,38 @@
+# This module defines table storage operations (mostly at file level)
+# PerlDB table file (.data) is human readable, similar to a spreadsheet.
+#
+# Example (A table with column first name, last name, phone number):
+# Christina Gabby    03 2343 3232
+# Joshua    Hill     02 1232 12
+# David     Scott    12 3212 14
+# Steve     Robinson 09 2321 1232
+#
+# PerlDB table columns definition file is also human readable. It defines the
+# order of columns, as well as their name and size.
+# The format is:
+# column_name1:size1
+# column_name2:size2
+# column_name3:size3
+#
+# The order of those lines is important.
+#
+# Example (definition file (.def) for the table above):
+# first name:10
+# last name:9
+# phone number:12
+#
+# PerlDB log file is human readable as well.
+# The format is:
+# Unix time stamp (tab) operation name (tab) operation details
+#
+# Example:
+# 1317296748	AddColumn	~del,1 (A new column '~del' of size 1 is added)
+# 1317296748	Insert	{col3=>3   ,col1=>a ,col2=>,~del=> } (A row is inserted)
+# 1317296748	Delete	1 (Row 1 is deleted, '~del' updated to 'y')
+# 1317296748	Update	0{col1=>a} (Row 0 is updated, 'col1' updated to 'a')
+#
+# By default, when a new table is created, it comes with the default DB_COLUMNS.
+# One of them is '~del' of size 1, if a row is deleted, it will be set to 'y'.
 package Table;
 use strict;
 use warnings;
@@ -90,7 +125,7 @@ INITIALIZER: {
             $self->{'row_length'} += $length;
         }
 
-        # Each table row contains an EOL character
+        # Because each table row contains an EOL character...
         ++$self->{'row_length'};
         return;
     }
@@ -235,7 +270,7 @@ WRITER: {
         # Parameters: self, row number, row hash
         my ( $self, $row_number, $row ) = @_;
         if ( $row_number < $self->number_of_rows ) {
-            $self->memo( 'Update', $row_number . Util::h2s($row) );
+            $self->memo( 'Update', $row_number . q{ } . Util::h2s($row) );
             while ( ( my $column_name, my $value ) = each %{$row} ) {
                 if ( exists $self->{'columns'}->{$column_name} ) {
 
@@ -351,9 +386,9 @@ STRUCTURE_CHANGER: {
         # Parameters: self, column name
         my ( $self, $name ) = @_;
         if ( exists $self->{'columns'}->{$name} ) {
-            if ( exists( $Constant::DB_COLUMNS{$name} ) ) {
+            if ( exists $Constant::DB_COLUMNS{$name} ) {
                 croak
-                  "(Table->delete_column) Must not delete a database column";
+                  '(Table->delete_column) Must not delete a database column';
             }
             $self->memo( 'DeleteColumn', $name );
             my $removed_column_length = $self->{'columns'}->{$name}->{'length'};

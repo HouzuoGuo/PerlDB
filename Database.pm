@@ -1,3 +1,15 @@
+# Database logics, such as add/rename/delete tables.
+# A PerlDB table has three files: .data, .log and .def.
+# .data is data file, where table rows are stored.
+#
+# .log is log file, all operations done to the table are logged (such as
+# insert, delete, update, add/remove column, etc.)
+#
+# .def is columns definition file, it defines the order, name and length of
+# columns.
+#
+# .log file has the ability to recover a corrupted data file or/and def file,
+# however the recovery feature is still not implemented yet.
 package Database;
 use strict;
 use warnings;

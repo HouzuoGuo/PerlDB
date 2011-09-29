@@ -1,3 +1,4 @@
+# Database constants. All PerlDB constants are kept here
 package Constant;
 use strict;
 use warnings;

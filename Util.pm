@@ -1,3 +1,4 @@
+# This module provides some useful tools for file and text processing.
 package Util;
 use strict;
 use warnings;
