@@ -168,4 +168,17 @@ STRUCTURE_CHANGER: {
         return;
     }
 }
+ACCESS {
+
+    # Get reference to a table (in order to perform table operations)
+    sub table {
+        my ( $self, $table_name ) = @_;
+        my $ref = $self->{'tables'}->{$table_name};
+        if ( $ref == undef ) {
+            croak "(Database->table) Table $table_name does not exist";
+        } else {
+            return $ref;
+        }
+    }
+}
 1;
