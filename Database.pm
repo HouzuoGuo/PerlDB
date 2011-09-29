@@ -168,7 +168,7 @@ STRUCTURE_CHANGER: {
         return;
     }
 }
-ACCESS {
+ACCESS: {
 
     # Get reference to a table (in order to perform table operations)
     sub table {
