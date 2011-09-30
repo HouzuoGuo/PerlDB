@@ -30,7 +30,7 @@ sub trimmed {
 
     # Parameter: the string
     my $string = shift;
-    $string =~ s/^\s+|\s+$//gsmx;
+    $string =~ s/^\s+|\s+$//gmsx;
     return $string;
 }
 
