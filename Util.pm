@@ -30,7 +30,8 @@ sub trimmed {
 
     # Parameter: the string
     my $string = shift;
-    return $string =~ s/^\s+|\s+$//gsmx;
+    $string =~ s/^\s+|\s+$//gsmx;
+    return $string;
 }
 
 # Convert hash into string
