@@ -1,4 +1,4 @@
-# Relational Algebras and results of relational algebras as well.
+# Relational Algebras.
 #
 # Results are stored as: tables and their kept row numbers; kept columns and
 # their tables.
@@ -90,7 +90,6 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
                 my @other_associations =
                   grep { $self->{'columns'}->{$_}->{'table'} eq $table_name }
                   keys %{ $self->{'columns'} };
-                print "\nUsed: @other_associations\n";
 
                 # If it does not associate with any other column
                 if ( scalar @other_associations == 0 ) {
