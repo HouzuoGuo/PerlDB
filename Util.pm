@@ -25,6 +25,14 @@ sub trim {
     }
 }
 
+# Remove leading and trailing spaces from a string and return the result
+sub trimmed {
+
+    # Parameter: the string
+    my $string = shift;
+    return $string =~ s/^\s+|\s+$//gsmx;
+}
+
 # Convert hash into string
 sub h2s {
 
