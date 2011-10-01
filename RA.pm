@@ -77,13 +77,13 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
         my ( $self, @column_aliases ) = @_;
 
         # For all the aliases we have
-        foreach my $alias ( keys %{ $self->{'columns'} } ) {
+        while ( my ( $alias, $column ) = each %{ $self->{'columns'} } ) {
 
             # If it is not one we want to keep
             if ( not any { $_ eq $alias } @column_aliases ) {
 
                 # Find out its associated table name
-                my $table_name = $self->{'columns'}->{$alias}->{'table'};
+                my $table_name = $column->{'table'};
                 delete $self->{'columns'}->{$alias};
 
                 # Does the associated table associate with any other column?
@@ -97,6 +97,43 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
                 }
             }
         }
+        return $self;
+    }
+
+    # Relational algebra Redefine
+    sub redefine {
+
+        # Parameters: self, old alias, new alias
+        my ( $self, $old_alias, $new_alias ) = @_;
+        if ( exists $self->{'columns'}->{$old_alias} ) {
+            if ( exists $self->{'columns'}->{$new_alias} ) {
+                croak "(RA->rename) the new alias $new_alias already exists";
+            } else {
+                $self->{'columns'}->{$new_alias} =
+                  $self->{'columns'}->{$old_alias};
+                delete $self->{'columns'}->{$old_alias};
+            }
+        } else {
+            croak "(RA->rename) the old alias $old_alias does not exist";
+        }
+        return $self;
+    }
+
+    # Relational algebra Cross
+    sub cross {
+
+        # Parameters: self, reference to the table
+        my ( $self, $table_ref ) = @_;
+        return $self;
+    }
+
+    # Relational algebra Join (using nested loop)
+    sub ns_join {
+
+        # Parameters: self, column alias, table, column name
+        # column alias is the existing one in this RA
+        # column name is the column in the table
+        my ( $self, $alias, $table_ref, $column_name ) = @_;
         return $self;
     }
 }
