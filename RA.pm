@@ -46,20 +46,20 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
         my @kept        = ();
 
         # For all the rows
-        for ( my $i = 0 ; $i < scalar @{$row_numbers} ; ++$i ) {
+        for ( 0 .. scalar @{$row_numbers} - 1 ) {
 
             # Use the filter function to pick out kept row numbers
             if (
                  $filter_function->(
                                   Util::trimmed(
-                                      $table_ref->read_row( $row_numbers->[$i] )
+                                      $table_ref->read_row( $row_numbers->[$_] )
                                         ->{$column_name}
                                   ),
                                   $parameter
                  )
               )
             {
-                push @kept, $i;
+                push @kept, $_;
             }
         }
         foreach ( values %{ $self->{'tables'} } ) {
