@@ -55,17 +55,17 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
                                       $table_ref->read_row( $row_numbers->[$i] )
                                         ->{$column_name}
                                   ),
-                                  Util::trimmed($parameter)
+                                  $parameter
                  )
               )
             {
                 push @kept, $i;
             }
         }
-        while ( my ( $a_name, $a_ref ) = each %{ $self->{'tables'} } ) {
+        foreach ( values %{ $self->{'tables'} } ) {
 
             # Each table now only keeps the kept row numbers
-            @{ $a_ref->{'row_numbers'} } = @{ $a_ref->{'row_numbers'} }[@kept];
+            @{ $_->{'row_numbers'} } = @{ $_->{'row_numbers'} }[@kept];
         }
         return $self;
     }
@@ -124,11 +124,47 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
 
         # Parameters: self, reference to the table
         my ( $self, $table_ref ) = @_;
+
+        # The name of the new table
+        my $new_table_name = $table_ref->{'name'};
+
+        # Number of rows in the new table
+        my $new_table_number_rows = $table_ref->number_of_rows;
+
+        # Number of selected rows in an existing table
+        my $existing_table_number_rows;
+
+        # For each table we have
+        while ( my ( $name, $ref ) = each %{ $self->{'tables'} } ) {
+            $existing_table_number_rows = scalar @{ $ref->{'row_numbers'} };
+            my @temp_row_numbers;
+
+            # Repeat the existing table's row numbers
+            foreach ( 0 .. $new_table_number_rows - 1 ) {
+                push @temp_row_numbers, @{ $ref->{'row_numbers'} };
+            }
+            $ref->{'row_numbers'} = \@temp_row_numbers;
+        }
+        my @temp_row_numbers;
+
+        # Prepare the table just as normal
+        $self->prepare_table($table_ref);
+
+        # Reference of the new table in this RA
+        my $new_table_in_ra = $self->{'tables'}->{$new_table_name};
+
+        # Repeat each selected row number in the new table
+        foreach my $row_number ( @{ $new_table_in_ra->{'row_numbers'} } ) {
+            foreach ( 0 .. $existing_table_number_rows - 1 ) {
+                push @temp_row_numbers, $row_number;
+            }
+        }
+        $new_table_in_ra->{'row_numbers'} = \@temp_row_numbers;
         return $self;
     }
 
     # Relational algebra Join (using nested loop)
-    sub ns_join {
+    sub nl_join {
 
         # Parameters: self, column alias, table, column name
         # column alias is the existing one in this RA
@@ -146,16 +182,35 @@ OTHER_FUNCTIONS: {
         # Parameters: self, reference to the table to be read
         my ( $self, $table_ref ) = @_;
         my $table_name = $table_ref->{'name'};
+        if ( exists $self->{'tables'}->{$table_name} ) {
+            croak "(RA->prepare_table) Table name $table_name already exists";
+        } else {
 
-        # Load all row numbers
-        $self->{'tables'}->{$table_name} = {
+            # Load all row numbers
+            $self->{'tables'}->{$table_name} = {
                         'ref'         => $table_ref,
                         'row_numbers' => [ 0 .. $table_ref->number_of_rows - 1 ]
-        };
+            };
 
-        # Load all columns
-        foreach ( keys %{ $table_ref->{'columns'} } ) {
-            $self->{'columns'}->{$_} = { 'table' => $table_name, 'name' => $_ };
+            # Load all columns
+            foreach ( keys %{ $table_ref->{'columns'} } ) {
+                $self->{'columns'}->{$_} =
+                  { 'table' => $table_name, 'name' => $_ };
+            }
+        }
+        return $self;
+    }
+
+    # Report the tables, row numbers, columns and aliases, for debugging
+    sub report {
+
+        # Parameter: self
+        my $self = shift;
+        while ( my ( $name, $ref ) = each %{ $self->{'tables'} } ) {
+            print "Table $name @{$ref->{'row_numbers'}}\n";
+        }
+        while ( my ( $alias, $ref ) = each %{ $self->{'columns'} } ) {
+            print "Alias $alias of table $ref->{'table'} $ref->{'name'}\n";
         }
         return $self;
     }
