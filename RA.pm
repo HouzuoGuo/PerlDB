@@ -39,11 +39,21 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
 
         # Parameters: self, column alias, filter, parameter to filter
         my ( $self, $alias, $filter_function, $parameter ) = @_;
-        my $table_name  = $self->{'columns'}->{$alias}->{'table'};
+
+        # Name of the table of the column alias
+        my $table_name = $self->{'columns'}->{$alias}->{'table'};
+
+        # Column name of the column alias
         my $column_name = $self->{'columns'}->{$alias}->{'name'};
-        my $table_ref   = $self->{'tables'}->{$table_name}->{'ref'};
+
+        # Table of the column alias
+        my $table_ref = $self->{'tables'}->{$table_name}->{'ref'};
+
+        # Selected row numbers of the table
         my $row_numbers = $self->{'tables'}->{$table_name}->{'row_numbers'};
-        my @kept        = ();
+
+        # Row numbers to keep (after select operation)
+        my @kept = ();
 
         # For all the rows
         for ( 0 .. scalar @{$row_numbers} - 1 ) {
@@ -167,9 +177,45 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
     sub nl_join {
 
         # Parameters: self, column alias, table, column name
-        # column alias is the existing one in this RA
-        # column name is the column in the table
+        # (Use RA result's $alias column to join $table_ref's $column_name
         my ( $self, $alias, $table_ref, $column_name ) = @_;
+
+        # Column name of the alias
+        my $t1_column = $self->{'columns'}->{$alias}->{'name'};
+
+        # The table hash which the column alias belongs to
+        my $t1 = $self->{'tables'}->{ $self->{'columns'}->{$alias}->{'table'} };
+
+        # Reference to the table of the column alias
+        my $t1_ref = $t1->{'ref'};
+
+        # The order of row numbers
+        my @new_order_t1 = ();
+        my @new_order_t2 = ();
+        foreach my $rn1 ( @{ $t1->{'row_numbers'} } ) {
+            foreach my $rn2 ( 0 .. $table_ref->number_of_rows - 1 ) {
+                my $r1 = $t1_ref->read_row($rn1);
+                my $r2 = $table_ref->read_row($rn2);
+                if ( Util::trimmed( $r1->{$t1_column} ) eq
+                     Util::trimmed( $r2->{$column_name} ) )
+                {
+                    push @new_order_t1, $rn1;
+                    push @new_order_t2, $rn2;
+                }
+            }
+        }
+        foreach ( values %{ $self->{'tables'} } ) {
+
+            # Correct order of row numbers in each table
+            @{ $_->{'row_numbers'} } = @{ $_->{'row_numbers'} }[@new_order_t1];
+        }
+
+        # Prepare the new table as usual
+        $self->prepare_table($table_ref);
+
+        # Assign the new table new row numbers
+        $self->{'tables'}->{ $table_ref->{'name'} }->{'row_numbers'} =
+          \@new_order_t2;
         return $self;
     }
 }
