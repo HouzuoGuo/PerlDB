@@ -51,11 +51,6 @@ INITIALIZER: {
         # path of the table's directory, name of the table
         my ( $type, $database, $path, $name ) = @_;
 
-        # Make sure that the path ends with a slash
-        if ( not $path =~ /.*\//msx ) {
-            $path .= q{/};
-        }
-
         # Attributes:
         my $self = {
 

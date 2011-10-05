@@ -25,11 +25,6 @@ INITIALIZER: {
 
         # Parameters: type, path of database directory
         my ( $type, $path ) = @_;
-
-        # Make sure that the path ends with slash
-        if ( not $path =~ /.*\//msx ) {
-            $path .= q{/};
-        }
         -d $path or croak "(Database->new) $path has to be a directory";
 
         # Attributes: path of database directory, a hash of table name and refs
