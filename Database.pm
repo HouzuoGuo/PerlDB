@@ -44,6 +44,30 @@ INITIALIZER: {
         bless $self, $type;
         return $self;
     }
+
+    # Initialize a database directory
+    # If a directory is not initialize, many PerlDB features may malfunction
+    sub init_dir {
+
+        # Parameter: self
+        my $self          = shift;
+        my $initfile_path = $self->{'path'} . '.init';
+        if ( not -f $initfile_path ) {
+
+            # ~before table stores "before" triggers
+            $self->new_table('~before');
+
+            # ~after table stores "after" triggers
+            $self->new_table('~after');
+
+            # Create a flag file to indicate that the directory is initialized
+            open my $init_file, '+>', $initfile_path
+              or croak '(Database->init_dir) Unable to create .init file';
+            close $init_file
+              or croak '(Database->init_dir) Unable to close .init file handle';
+        }
+        return;
+    }
 }
 STRUCTURE_CHANGER: {
 
@@ -59,7 +83,7 @@ STRUCTURE_CHANGER: {
         );
         if ( -f $def_path or -f $data_path or -f $log_path ) {
             croak
-              '(Database->new_table) Cannot create table, file already exists';
+              '(Database->new_table) Cannot create table, table already exists';
         } else {
 
             # Create data file, log file and definition file
