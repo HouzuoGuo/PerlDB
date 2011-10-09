@@ -260,5 +260,55 @@ OTHER_FUNCTIONS: {
         }
         return $self;
     }
+
+    # Return a copy of RA result
+    sub copy {
+        my $self = shift;
+        my $copy = RA->new();
+
+        # Make a copy of the two hashes which store RA result
+        $copy->{'tables'}  = \%{ $self->{'tables'} };
+        $copy->{'columns'} = \%{ $self->{'columns'} };
+        return $copy;
+    }
+
+    # Read and return row's hash according to a row number
+    sub read_row {
+
+        # Parameters: self, row number
+        my ( $self, $row_number ) = @_;
+        my %hash;
+        my $tables = $self->{'tables'};
+
+        # For each column in RA result
+        while ( my ( $alias, $column ) = each %{ $self->{'columns'} } ) {
+
+            # Table of the column
+            my $table = $tables->{ $column->{'table'} };
+
+            # Name of the column
+            my $column_name = $column->{'name'};
+
+            # .....
+            $hash{$column_name} =
+              $table->{'ref'}
+              ->read_row( $table->{'row_numbers'}->[$row_number] )
+              ->{$column_name};
+        }
+        return \%hash;
+    }
+
+    # Return number of rows in RA result
+    sub number_of_rows {
+
+        # Parameter: self
+        my $self = shift;
+        while ( my ( $table_name, $table ) = each %{ $self->{'tables'} } ) {
+
+            # Return number of kept rows
+            return scalar @{ $table->{'row_numbers'} };
+        }
+        return 0;
+    }
 }
 1;

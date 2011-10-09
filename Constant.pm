@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use diagnostics;
 use Readonly;
+use Trigger;
 DB: {
 
     # Default database columns
@@ -25,5 +26,8 @@ TRIGGER: {
 
     # Maximum length of trigger operation name
     Readonly our $OPERATION_NAME_LIMIT => 6;
+    
+    # Table triggers
+    our %TRIGGERS = ('pk'=>\&Trigger::pk, 'fk'=>\&Trigger::fk);
 }
 1;

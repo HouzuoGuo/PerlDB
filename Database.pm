@@ -35,7 +35,7 @@ INITIALIZER: {
         while ( readdir $dir ) {
 
             # If it looks like a PerlDB file (either data or log or definition)
-            if (/(^[^.~].*)(\.data|\.log|\.def)$/msx) {
+            if (/(^[^.].*)(\.data|\.log|\.def)$/msx) {
                 if ( not exists $self->{'tables'}->{$1} ) {
                     $self->{'tables'}->{$1} = Table->new( $self, $path, $1 );
                 }
