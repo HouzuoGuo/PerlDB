@@ -17,7 +17,7 @@ use diagnostics;
 use Carp;
 use English qw(-no_match_vars);
 use Table;
-use Constant qw(DB_COLUMNS);
+use Constant;
 INITIALIZER: {
 
     # Constructor
@@ -55,10 +55,14 @@ INITIALIZER: {
         if ( not -f $initfile_path ) {
 
             # ~before table stores "before" triggers
-            $self->new_table('~before');
-
+            my $before_table = $self->new_table('~before');
+            $before_table->add_column('table', 50);
+            $before_table->add_column('column', 50);
+            $before_table->add_column('operation', 50);
+            $before_table->add_column('trigger', 50);
+            
             # ~after table stores "after" triggers
-            $self->new_table('~after');
+            my $after_table = $self->new_table('~after');
 
             # Create a flag file to indicate that the directory is initialized
             open my $init_file, '+>', $initfile_path
@@ -84,6 +88,8 @@ STRUCTURE_CHANGER: {
         if ( -f $def_path or -f $data_path or -f $log_path ) {
             croak
               '(Database->new_table) Cannot create table, table already exists';
+        } elsif (length $name > $Constants::TABLE_NAME_LIMIT){
+            croak "(Database->new_table) Name $name is too long";
         } else {
 
             # Create data file, log file and definition file
@@ -151,6 +157,8 @@ STRUCTURE_CHANGER: {
         if ( exists $self->{'tables'}->{$old_name} ) {
             if ( exists $self->{'tables'}->{$new_name} ) {
                 croak "(Database->rename_table) Table $new_name already exists";
+            } elsif (length $new_name > $Constant::TABLE_NAME_LIMIT) {
+                croak "(Database->rename_table) Name $new_name is too long";
             } else {
                 my $new_data_path = $new_name . '.data';
                 my $new_log_path  = $new_name . '.log';

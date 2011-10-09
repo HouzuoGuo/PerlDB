@@ -354,6 +354,8 @@ STRUCTURE_CHANGER: {
         my ( $self, $column_name, $length ) = @_;
         if ( exists $self->{'columns'}->{$column_name} ) {
             croak "(Table->add_column) Column $column_name already exists";
+        } elsif ( length $column_name > $Constant::COLUMN_NAME_LIMIT ) {
+            croak "(Table->add_column) Name $column_name is too long";
         } else {
             $self->memo( 'AddColumn', "$column_name,$length" );
 
