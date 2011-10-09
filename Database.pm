@@ -56,11 +56,11 @@ INITIALIZER: {
 
             # ~before table stores "before" triggers
             my $before_table = $self->new_table('~before');
-            $before_table->add_column('table', 50);
-            $before_table->add_column('column', 50);
-            $before_table->add_column('operation', 50);
-            $before_table->add_column('trigger', 50);
-            
+            $before_table->add_column( 'table',     50 );
+            $before_table->add_column( 'column',    50 );
+            $before_table->add_column( 'operation', 50 );
+            $before_table->add_column( 'trigger',   50 );
+
             # ~after table stores "after" triggers
             my $after_table = $self->new_table('~after');
 
@@ -87,24 +87,30 @@ STRUCTURE_CHANGER: {
         );
         if ( -f $def_path or -f $data_path or -f $log_path ) {
             croak
-              '(Database->new_table) Cannot create table, table already exists';
-        } elsif (length $name > $Constants::TABLE_NAME_LIMIT){
-            croak "(Database->new_table) Name $name is too long";
+"(Database->new_table) Cannot create table $name , table files already exist";
+        } elsif ( length $name > $Constant::TABLE_NAME_LIMIT ) {
+            croak "(Database->new_table) Table name $name is too long";
+        } elsif ( $name =~ '~.*' ) {
+            croak "(Database->new_table) Table name $name may not start with ~";
         } else {
 
             # Create data file, log file and definition file
             open my $datafile, '+>', $data_path
               or croak
-              "(Database->new_table) Cannot create datafile: $OS_ERROR";
+"(Database->new_table) Cannot create datafile $data_path: $OS_ERROR";
             close $datafile
-              or carp '(Database->new_table) Cannot close datafile';
+              or carp "(Database->new_table) Cannot close datafile $data_path";
             open my $logfile, '+>', $def_path
-              or croak "(Database->new_table Cannot create logfile, $OS_ERROR";
-            close $logfile or carp '(Database->new_table) Cannot close logfile';
+              or croak
+              "(Database->new_table Cannot create logfile $log_path: $OS_ERROR";
+            close $logfile
+              or carp "(Database->new_table) Cannot close logfile $log_path";
             open my $deffile, '+>', $log_path
               or croak
-              "(Database->new_table) Cannot create definition file: $OS_ERROR";
-            close $deffile or carp '(Database->new_table) Cannot close deffile';
+"(Database->new_table) Cannot create definition file $def_path: $OS_ERROR";
+            close $deffile
+              or carp
+              "(Database->new_table) Cannot close definition file $def_path";
             my $new_table = Table->new( $self, $self->{'path'}, $name );
 
             # Add database columns (default columns) into the table
@@ -129,17 +135,17 @@ STRUCTURE_CHANGER: {
             # Delete data file
             unlink $self->{'path'} . $name . '.data'
               or carp
-"(Database->delete_table) Unable to delete data file of $name: $OS_ERROR";
+"(Database->delete_table) Unable to delete data file of table $name: $OS_ERROR";
 
             # Delete log file
             unlink $self->{'path'} . $name . '.log'
               or carp
-"(Database->delete_table) Unable to delete log file of $name: $OS_ERROR";
+"(Database->delete_table) Unable to delete log file of table $name: $OS_ERROR";
 
             # Delete definition file
             unlink $self->{'path'} . $name . '.def'
               or carp
-"(Database->delete_table) Unable to delete definition file of $name: $OS_ERROR";
+"(Database->delete_table) Unable to delete definition file of table $name: $OS_ERROR";
 
             # Remove the table from table hash
             delete $self->{'tables'}->{$name};
@@ -157,8 +163,9 @@ STRUCTURE_CHANGER: {
         if ( exists $self->{'tables'}->{$old_name} ) {
             if ( exists $self->{'tables'}->{$new_name} ) {
                 croak "(Database->rename_table) Table $new_name already exists";
-            } elsif (length $new_name > $Constant::TABLE_NAME_LIMIT) {
-                croak "(Database->rename_table) Name $new_name is too long";
+            } elsif ( length $new_name > $Constant::TABLE_NAME_LIMIT ) {
+                croak
+                  "(Database->rename_table) Table name $new_name is too long";
             } else {
                 my $new_data_path = $new_name . '.data';
                 my $new_log_path  = $new_name . '.log';

@@ -251,7 +251,7 @@ WRITER: {
                 # set '~del' to 'y' indicates that the row has been deleted
                 $self->write_column( '~del', 'y' );
             } else {
-                croak '(Table->delete) There is no definition for column ~del.';
+                croak '(Table->delete) There is no definition of column ~del.';
             }
         } else {
             croak "(Table->delete) Row number $row_number is out of boundary";
