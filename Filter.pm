@@ -1,4 +1,4 @@
-package Filters;
+package Filter;
 use strict;
 use warnings;
 use diagnostics;

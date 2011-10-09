@@ -18,6 +18,7 @@ use Carp;
 use English qw(-no_match_vars);
 use Table;
 use Constant;
+use Trigger;
 INITIALIZER: {
 
     # Constructor
@@ -56,19 +57,18 @@ INITIALIZER: {
 
             # ~before table stores "before" triggers
             my $before_table = $self->new_table('~before');
-            $before_table->add_column( 'table',     50 );
-            $before_table->add_column( 'column',    50 );
-            $before_table->add_column( 'operation', 50 );
-            $before_table->add_column( 'trigger',   50 );
+            Trigger::prepare_trigger_table($before_table);
 
             # ~after table stores "after" triggers
             my $after_table = $self->new_table('~after');
+            Trigger::prepare_trigger_table($after_table);
 
             # Create a flag file to indicate that the directory is initialized
             open my $init_file, '+>', $initfile_path
-              or croak '(Database->init_dir) Unable to create .init file';
+              or croak
+"(Database->init_dir) Unable to create file $initfile_path: $OS_ERROR";
             close $init_file
-              or croak '(Database->init_dir) Unable to close .init file handle';
+              or croak "(Database->init_dir) Unable to close $initfile_path";
         }
         return;
     }
@@ -90,8 +90,6 @@ STRUCTURE_CHANGER: {
 "(Database->new_table) Cannot create table $name , table files already exist";
         } elsif ( length $name > $Constant::TABLE_NAME_LIMIT ) {
             croak "(Database->new_table) Table name $name is too long";
-        } elsif ( $name =~ '~.*' ) {
-            croak "(Database->new_table) Table name $name may not start with ~";
         } else {
 
             # Create data file, log file and definition file
