@@ -1,4 +1,4 @@
-# Database constants. All PerlDB constants are kept here
+# Database constants.
 package Constant;
 use strict;
 use warnings;
@@ -27,7 +27,8 @@ TRIGGER: {
     # Maximum length of trigger operation name
     Readonly our $OPERATION_NAME_LIMIT => 6;
     
-    # Table triggers
+    # Table triggers, all triggers in-use must be defined here
+    # Format: 'function name as in trigger table'=>reference_to_function
     our %TRIGGERS = ('pk'=>\&Trigger::pk, 'fk'=>\&Trigger::fk);
 }
 1;

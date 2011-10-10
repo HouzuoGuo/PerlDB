@@ -1,3 +1,4 @@
+# Some useful filter functions, to be used by some functions in RA module. 
 package Filter;
 use strict;
 use warnings;
@@ -5,7 +6,7 @@ use diagnostics;
 use Carp;
 use English qw(-no_match_vars);
 
-# Test if two strings are equal
+# Test if two scalars are equal
 sub equals {
 
     # Parameters: value1, value2

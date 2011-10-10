@@ -1,3 +1,33 @@
+# Programmed database triggers and trigger-related logics.
+#
+# PerlDB supports both "before" triggers and "after" triggers. Triggers are
+# executed for each of new/deleted rows.
+# PerlDB database uses two special tables for storing triggers: ~before and
+# ~after. The tables are created by calling Database->init_dir.
+#
+# Definition of the tables are given as following:
+# ~del:1        (Default database column)
+# table:50      (The table's name which the trigger executes on)
+# column:50     (The column's name)
+# operation:6   (Type of operation: insert, update or delete)
+# function:50   (Trigger function's key)
+# parameters:50 (Extra parameters to trigger function, separated by ;)
+#
+# For example, when a new row is inserted:
+# 1. Load ~before table into RA  (in table operation function)
+# 2. Filter RA by table name     (in table operation function)
+# 3. Call execute_trigger        (in table operation function)
+# (For each column-value pairs)
+# 3.1. Filter RA by column name    (in execute_trigger function)
+# 3.2. Filter RA by operation type (in execute_trigger function)
+# 3.3. For each row in RA result, call the trigger function with parameters
+# (Loop done)
+# 4. Physically insert the row   (in table operation function)
+# 5. Load ~after table into RA   (in table operation function)
+# 6. Call execute_trigger        (in table operation function)
+# 7. Perform "after" triggers as in the loop above
+#
+# Thus, customized trigger functions are also supported.
 package Trigger;
 use strict;
 use warnings;
@@ -5,6 +35,53 @@ use diagnostics;
 use Util;
 use Constant;
 use Carp;
+
+# Execute table triggers
+sub execute_trigger {
+
+    # Parameters: reference to table, reference to RA of trigger table,
+    # row 1, row 2
+    #
+    # For insert, row 1 is the new row
+    # For update, row 1 is the old row, row 2 is the new row
+    # For delete, row 1 is the old row
+    my ( $table, $ra, $operation, $row1, $row2 ) = @_;
+
+    # For each column value to be changed
+    while ( my ( $column_name, $value ) = each %{$row1} ) {
+
+        # Do not wanna mess up the next while loop iteration, so make a copy
+        my $loop_ra = $ra->copy();
+
+        # Filter the triggers only for this column
+        $loop_ra->select( 'column', \&Filter::equals, $column_name );
+
+        # Filter the triggers only for the operation
+        $loop_ra->select( 'operation', \&Filter::equals, $operation );
+
+        # For each row of RA result (i.e. for each defined trigger)
+        foreach my $cursor ( 0 .. $loop_ra->number_of_rows - 1 ) {
+
+            # Read the row
+            my $trigger_row  = $loop_ra->read_row($cursor);
+            my %all_triggers = %Constant::TRIGGERS;
+
+            # Call trigger function with parameters
+            $all_triggers{ Util::trimmed( $trigger_row->{'function'} ) }->(
+                {
+                  'table'  => $table,          # Affected table
+                  'column' => $column_name,    # Affected column
+                  'row1'   => $row1,
+                  'row2'   => $row2
+                },
+
+                # Extra parameters
+                split( /;/msx, Util::trimmed( $trigger_row->{'parameters'} ) )
+            );
+        }
+    }
+    return;
+}
 
 # Prepare a table for storing database triggers
 sub prepare_trigger_table {
@@ -19,31 +96,80 @@ sub prepare_trigger_table {
     return;
 }
 
-# btw, constraints are all "before" triggers
+# btw, constraints must all be "before" triggers
 CONSTRAINTS: {
 
     sub pk {
 
-        # Parameter: hash of parameters passed from trigger
+        # Parameter: hash of parameters passed by execute_trigger
         my $params = shift;
-        my $table       = $params->{'table'};
+
+        # The affected table
+        my $table = $params->{'table'};
+
+        # The affected column
         my $column_name = $params->{'column'};
-        my $new_value   = $params->{'new'}->{$column_name};
+
+        # New value for the column
+        my $new_value = $params->{'row1'}->{$column_name};
+
+        # For each row in the affected table
         foreach my $cursor ( 0 .. $table->number_of_rows - 1 ) {
 
-            # If any existing value duplicates the new value, croak
+            # Croak if any existing value duplicates the new value
             if ( Util::trimmed( $table->read_row($cursor)->{$column_name} ) eq
                  $new_value )
             {
                 croak
                   "(Trigger->pk) New value $new_value violates PK constraint on"
-                  . ' Table '.$table->{'name'}." column $column_name";
+                  . ' Table '
+                  . $table->{'name'}
+                  . " column $column_name";
             }
         }
         return;
     }
 
     sub fk {
+
+        # Parameter: hash of parameters passed from trigger, extra paremeters
+        my ( $params, @extra_params ) = @_;
+
+        # The affected table
+        my $table = $params->{'table'};
+
+        # The affected column
+        my $column_name = $params->{'column'};
+
+        # New value for the column
+        my $new_value = $params->{'row1'}->{$column_name};
+
+        # Reference to PK table (table name is [0] in extra parameters)
+        my $pk_table = $table->{'database'}->table( $extra_params[0] );
+
+        # Foreign key column name ([1] in extra parameters)
+        my $pk_column = $extra_params[1];
+
+        # Whether the new value of the column is found in its PK table
+        my $found;
+
+        # For each row in PK table
+        foreach my $cursor ( 0 .. $pk_table->number_of_rows - 1 ) {
+
+            # If any value of the PK column corresponds to the new value
+            if ( Util::trimmed( $pk_table->read_row($cursor)->{$pk_column} ) eq
+                 $new_value )
+            {
+                $found = 1;
+                last;
+            }
+        }
+        if ( not $found ) {
+            croak "(Trigger->fk) New value $new_value violates FK constraint on"
+              . ' Table '
+              . $table->{'name'}
+              . " column $pk_column";
+        }
         return;
     }
 }
