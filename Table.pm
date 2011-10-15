@@ -191,7 +191,7 @@ READER: {
         $self->seek_row($row_number);
 
         # Read a whole row, split it later
-        read $self->{'datafile'}, my $row, $self->{'row_length'};
+        my $row = readline($self->{'datafile'});
         my %hash;
 
         # Split the row into column_name:value pairs
