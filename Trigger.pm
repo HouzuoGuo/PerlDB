@@ -5,7 +5,7 @@
 # PerlDB database uses two special tables for storing triggers: ~before and
 # ~after. The tables are created by calling Database->init_dir.
 #
-# Definition of the table columsn are given as following:
+# Definition of the table is given as following:
 # ~del:1        (Default database column)
 # table:50      (The table's name which the trigger executes on)
 # column:50     (The column's name)
