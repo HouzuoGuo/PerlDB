@@ -60,7 +60,11 @@ sub insert {
 
         # Remember the row number of the new row
         push @{ $self->{'log'} },
-          ( 'op' => 'insert', 'row_number' => $table->number_of_rows );
+          (
+            'op'         => 'insert',
+            'row_number' => $table->number_of_rows,
+            'table'      => $table
+          );
         1;
       }
       or do {
@@ -84,7 +88,8 @@ sub update {
           (
             'op'         => 'update',
             'row_number' => $row_number,
-            'old_row'    => $old_row
+            'old_row'    => $old_row,
+            'table'      => $table
           );
       }
       or do {
@@ -107,7 +112,8 @@ sub delete_row {
         push @{ $self->{'log'} },
           (
             'op'         => 'update',
-            'row_number' => $row_number
+            'row_number' => $row_number,
+            'table'      => $table
           );
       }
       or do {
@@ -122,7 +128,21 @@ sub rollback {
 
     # Parameter: self
     my $self = shift;
+    # Reverse actions
     foreach ( reverse @{ my $self->{'log'} } ) {
+        if ( $_->{'op'} eq 'insert' ) {
+
+            # Roll back of insert = delete
+            $_->{'table'}->delete_row( $_->{'row_number'} );
+        } elsif ( $_->{'op'} eq 'update' ) {
+
+            # Roll back of update = update to original
+            $_->{'table'}->update( $_->{'row_number'}, $_->{'old_row'} );
+        } elsif ( $_->{'op'} eq 'delete' ) {
+
+            # Roll back of delete = clear '~del' flag
+            $_->{'table'}->update( $_->{'row_number'}, { '~del', q{ } } );
+        }
     }
     $self->commit;
     return;
