@@ -69,7 +69,7 @@ INITIALIZER: {
               or croak
 "(Database->init_dir) Unable to create file $initfile_path: $OS_ERROR";
             close $init_file
-              or croak "(Database->init_dir) Unable to close $initfile_path";
+              or carp "(Database->init_dir) Unable to close $initfile_path";
         }
         return;
     }

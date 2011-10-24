@@ -57,15 +57,13 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
 
         # For all the rows
         for ( 0 .. scalar @{$row_numbers} - 1 ) {
+            my $row = $table_ref->read_row( $row_numbers->[$_] );
 
             # Use the filter function to pick out kept row numbers
             if (
-                 $filter_function->(
-                                  Util::trimmed(
-                                      $table_ref->read_row( $row_numbers->[$_] )
-                                        ->{$column_name}
-                                  ),
-                                  $parameter
+                 not $row->{'~del'}
+                 and $filter_function->(
+                               Util::trimmed( $row->{$column_name} ), $parameter
                  )
               )
             {
@@ -196,7 +194,9 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
             foreach my $rn2 ( 0 .. $table_ref->number_of_rows - 1 ) {
                 my $r1 = $t1_ref->read_row($rn1);
                 my $r2 = $table_ref->read_row($rn2);
-                if ( Util::trimmed( $r1->{$t1_column} ) eq
+                if (     not $r1->{'~del'}
+                     and not $r2->{'~del'}
+                     and Util::trimmed( $r1->{$t1_column} ) eq
                      Util::trimmed( $r2->{$column_name} ) )
                 {
                     push @new_order_t1, $rn1;
