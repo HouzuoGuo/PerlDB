@@ -95,7 +95,7 @@ STRUCTURE_CHANGER: {
 
             # Create files and directories for the new table
             foreach (@Constant::TABLE_FILES) {
-                Util::create_empty_file( $self->{'path'} . $name . $_ );
+                Util::create_file( $self->{'path'} . $name . $_ );
             }
             foreach (@Constant::TABLE_DIRS) {
                 mkdir $self->{'path'} . $name . $_;

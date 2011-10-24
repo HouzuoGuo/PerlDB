@@ -62,13 +62,16 @@ sub remove_by_regex {
     return;
 }
 
-# Create an empty text file
-sub create_empty_file {
+# Create a file with optional content
+sub create_file {
 
-    # Parameter: path
-    my $path = shift;
+    # Parameter: path, content
+    my ( $path, $content ) = @_;
     open my $file, '>', $path
       or croak "(Util->create_empty_file) Cannot create file $path: $OS_ERROR";
+    if ($content) {
+        print $file $content;
+    }
     close $file or carp "(Util->create_empty_file) Cannot close file $path";
     return;
 }

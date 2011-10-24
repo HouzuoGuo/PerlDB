@@ -38,12 +38,47 @@ sub e_lock {
 
     # Parameters: self, the table
     my ( $self, $table ) = @_;
+    my %existing_locks = $self->locks_of($table);
+
+    # If someone else has acquired shared lock or exclusive lock
+    if (     $existing_locks{'shared'}
+         and $existing_locks{'shared'} != [ $self->{'id'} ]
+         or $existing_locks{'exclusive'} ne $self->{'id'} )
+    {
+        carp '(Transaction->e_lock) '
+          . $self->{'id'}
+          . ' is unable to acquire exclusive lock on table '
+          . $table->{'name'};
+    } else {
+
+        # If a shared lock was acquired previously, remove that lock
+        if ( $existing_locks{'shared'} == [ $self->{'id'} ] ) {
+            $self->unlock($table);
+        }
+
+        # Create exclusive lock file and write this ID in
+        Util::create_file( $table->{'path'} . $table->{'name'} . '.exclusive',
+                           $self->{'id'} );
+    }
     return;
 }
 
 # Lock a table in shared mode
 sub s_lock {
     my ( $self, $table ) = @_;
+    my %existing_locks = $self->locks_of($table);
+    if ( $existing_locks{'exclusive'} ne $self->{'id'} ) {
+        carp '(Transaction->s_lock) '
+          . $self->{'id'}
+          . ' is unable to acquire shared lock on table '
+          . $table->{'name'};
+    } else {
+        if ( $existing_locks{'exclusive'} ne $self->{'id'} ) {
+            $self->unlock($table);
+        }
+        Util::create_file(
+             $table->{'path'} . $table->{'name'} . '.shared/' . $self->{'id'} );
+    }
     return;
 }
 
@@ -51,7 +86,7 @@ sub s_lock {
 sub locks_of {
     my ( $self, $table ) = @_;
     my ( @shared_locks, $exclusive_lock );
-    my $shared_locks_path = $table->{'path'} . '.shared';
+    my $shared_locks_path = $table->{'path'} . $table->{'name'} . '.shared';
 
     # Open the directory of shared locks
     opendir my $shared_locks_dir, $shared_locks_path
@@ -75,7 +110,8 @@ sub locks_of {
     closedir $shared_locks_dir;
 
     # Exclusive lock file path
-    my $exclusive_lock_path = $table->{'path'} . '.exclusive';
+    my $exclusive_lock_path =
+      $table->{'path'} . $table->{'name'} . '.exclusive';
 
     # If exclusive lock exists
     if ( -f $exclusive_lock_path ) {
@@ -85,7 +121,10 @@ sub locks_of {
           or croak
 "(Transaction->locks_of) Unable to read exclusive lock file $exclusive_lock_path: $OS_ERROR";
         $exclusive_lock = readline $exclusive_lock_file;
-        close my $exclusive_lock_file or {};
+        close my $exclusive_lock_file
+          or carp
+"(Transaction->locks_of) Exclusive lock file $exclusive_lock_path is left open";
+
         # If the transaction has expired
         if ( time - $_ > $Constant::LOCK_TIMEOUT ) {
 
