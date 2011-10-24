@@ -16,6 +16,11 @@ DB: {
     # Maximum length of column name
     Readonly our $COLUMN_NAME_LIMIT => 50;
 }
+TRANSACTION: {
+
+    # Timeout for unreleased table lock (both exclusive and shared) in seconds
+    Readonly our $LOCK_TIMEOUT => 300;
+}
 TRIGGER: {
 
     # Maximum length of name of a trigger function
@@ -26,9 +31,9 @@ TRIGGER: {
 
     # Maximum length of trigger operation name
     Readonly our $OPERATION_NAME_LIMIT => 6;
-    
+
     # Table triggers, all triggers in-use must be defined here
     # Format: 'function name as in trigger table'=>reference_to_function
-    our %TRIGGERS = ('pk'=>\&Trigger::pk, 'fk'=>\&Trigger::fk);
+    our %TRIGGERS = ( 'pk' => \&Trigger::pk, 'fk' => \&Trigger::fk );
 }
 1;

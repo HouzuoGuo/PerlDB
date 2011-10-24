@@ -2,7 +2,7 @@
 # A transaction is represented by an object of Transaction.
 # To carry out a transaction:
 # 1. Begin a new transaction by getting an object of Transaction.
-# 2. Acquire locks on necessary tables by calling Transaction->lock
+# 2. Acquire locks on necessary tables
 # 3. Execute table operations
 # 4. After finishing all table operations, Transaction->commit or rollback
 #
@@ -16,16 +16,19 @@ use strict;
 use warnings;
 use diagnostics;
 use Carp;
+use English qw(-no_match_vars);
 use Insert;
 use Update;
 use Delete;
 use Util;
+use Constant;
+use Time::HiRes qw(time);
 
 sub new {
     my $type = shift;
 
-    # Attributes: transaction logs, acquired locks
-    my $self = { 'log' => [], 'locked_tables' => {} };
+    # Attributes: transaction logs, acquired locks, an ID (current system time)
+    my $self = { 'log' => [], 'locked_tables' => {}, 'id' => time };
     bless $self, $type;
     return $self;
 }
@@ -42,6 +45,57 @@ sub e_lock {
 sub s_lock {
     my ( $self, $table ) = @_;
     return;
+}
+
+# Return existing locks of a table, if lock(s) is expired, clear the lock
+sub locks_of {
+    my ( $self, $table ) = @_;
+    my ( @shared_locks, $exclusive_lock );
+    my $shared_locks_path = $table->{'path'} . '.shared';
+
+    # Open the directory of shared locks
+    opendir my $shared_locks_dir, $shared_locks_path
+      or croak
+"(Transaction->locks_of) Cannot open shared locks directory $shared_locks_path: $OS_ERROR";
+
+    # Read each file's name (each file name is a transaction ID)
+    while ( readdir $shared_locks_dir ) {
+
+        # If the transaction has expired
+        if ( time - $_ > $Constant::LOCK_TIMEOUT ) {
+
+            # Delete the shared lock file
+            unlink $_
+              or carp
+"(Transaction->locks_of) Unable to removed expired lock $_: $OS_ERROR";
+        } else {
+            push @shared_locks, $_;
+        }
+    }
+    closedir $shared_locks_dir;
+
+    # Exclusive lock file path
+    my $exclusive_lock_path = $table->{'path'} . '.exclusive';
+
+    # If exclusive lock exists
+    if ( -f $exclusive_lock_path ) {
+
+        # Read the exclusive lock for transaction ID
+        open my $exclusive_lock_file, '<', $exclusive_lock_path
+          or croak
+"(Transaction->locks_of) Unable to read exclusive lock file $exclusive_lock_path: $OS_ERROR";
+        $exclusive_lock = readline $exclusive_lock_file;
+        close my $exclusive_lock_file or {};
+        # If the transaction has expired
+        if ( time - $_ > $Constant::LOCK_TIMEOUT ) {
+
+            # Delete the exclusive lock file
+            unlink $exclusive_lock_file
+              or croak
+"(Transaction->locks_of) Unable to remove expired lock $exclusive_lock_path";
+        }
+    }
+    return ( "shared" => @shared_locks, "exclusive" => $exclusive_lock );
 }
 
 # Unlock a table, no matter it was locked exclusively or "sharedly"
@@ -128,6 +182,7 @@ sub rollback {
 
     # Parameter: self
     my $self = shift;
+
     # Reverse actions
     foreach ( reverse @{ my $self->{'log'} } ) {
         if ( $_->{'op'} eq 'insert' ) {

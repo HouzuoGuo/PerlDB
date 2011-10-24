@@ -16,6 +16,7 @@ use warnings;
 use diagnostics;
 use Carp;
 use English qw(-no_match_vars);
+use File::Path qw{rmtree};
 use Table;
 use Constant;
 use Trigger;
@@ -109,6 +110,12 @@ STRUCTURE_CHANGER: {
             close $deffile
               or carp
               "(Database->new_table) Cannot close definition file $def_path";
+
+            # Create directory for holding shared locks
+            my $shared_locks_directory = $self->{'path'} . $name . ".shared";
+            mkdir $shared_locks_directory
+              or croak
+"(Database->new_table) Cannot create shared locks directory $shared_locks_directory: $OS_ERROR";
             my $new_table = Table->new( $self, $self->{'path'}, $name );
 
             # Add database columns (default columns) into the table
@@ -144,6 +151,9 @@ STRUCTURE_CHANGER: {
             unlink $self->{'path'} . $name . '.def'
               or carp
 "(Database->delete_table) Unable to delete definition file of table $name: $OS_ERROR";
+
+            # Remove shared locks directory
+            rmtree $self->{'path'} . $name . '.shared';
 
             # Remove the table from table hash
             delete $self->{'tables'}->{$name};
