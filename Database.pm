@@ -97,7 +97,7 @@ STRUCTURE_CHANGER: {
             foreach (@Constant::TABLE_FILES) {
                 Util::create_empty_file( $self->{'path'} . $name . $_ );
             }
-            foreach (@Constraint::TABLE_DIRS) {
+            foreach (@Constant::TABLE_DIRS) {
                 mkdir $self->{'path'} . $name . $_;
             }
             my $new_table = Table->new( $self, $self->{'path'}, $name );
@@ -121,14 +121,16 @@ STRUCTURE_CHANGER: {
         my ( $self, $name ) = @_;
         if ( exists $self->{'tables'}->{$name} ) {
             foreach (@Constant::TABLE_FILES) {
-                unlink $self->{'path'} . $name
+                my $path = $self->{'path'} . $name . $_;
+                unlink $path
                   or carp
-"(Database->delete_table) Unable to delete file $_: $OS_ERROR";
+"(Database->delete_table) Unable to delete file $path: $OS_ERROR";
             }
-            foreach (@Constraint::TABLE_DIRS) {
-                rmtree $_
+            foreach (@Constant::TABLE_DIRS) {
+                my $path = $self->{'path'} . $name . $_;
+                rmtree $path
                   or carp
-"(Database->delete_table) Unable to delete directory $_: $OS_ERROR";
+"(Database->delete_table) Unable to delete directory $path: $OS_ERROR";
             }
 
             # Remove the table from table hash
@@ -154,13 +156,16 @@ STRUCTURE_CHANGER: {
                 my $new_data_path = $new_name . '.data';
                 my $new_log_path  = $new_name . '.log';
                 my $new_def_path  = $new_name . '.def';
+                my %old_new_names =
+                  Constant::renamed_table_files( $old_name, $new_name );
                 while ( my ( $old_file_name, $new_file_name ) =
-                    each
-                    %{ Constant::renamed_table_files( $old_name, $new_name ) } )
+                        each %old_new_names )
                 {
-                    rename $old_name, $new_name
+                    my $old_path = $self->{'path'} . $old_file_name;
+                    my $new_path = $self->{'path'} . $new_file_name;
+                    rename $old_path, $new_path
                       or croak
-"(Database->rename_table) Cannot rename $old_name into $new_name: $OS_ERROR";
+"(Database->rename_table) Cannot rename $old_path into $new_path: $OS_ERROR";
                 }
 
                 # Update table hash

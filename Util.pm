@@ -69,7 +69,7 @@ sub create_empty_file {
     my $path = shift;
     open my $file, '>', $path
       or croak "(Util->create_empty_file) Cannot create file $path: $OS_ERROR";
-    close $file or {};
+    close $file or carp "(Util->create_empty_file) Cannot close file $path";
     return;
 }
 1;
