@@ -16,6 +16,26 @@ DB: {
     # Maximum length of column name
     Readonly our $COLUMN_NAME_LIMIT => 50;
 }
+FILESYSTEM: {
+
+    # Table files
+    Readonly our @TABLE_FILES => ( '.data', '.log', '.def' );
+
+    # Table directories
+    Readonly our @TABLE_DIRS => ('.shared');
+
+    # Return a hash of old table file names VS new table file names
+    sub renamed_table_files {
+
+        # Parameter: old name, new name
+        my ( $old_name, $new_name ) = @_;
+        my %old_vs_new = ();
+        foreach ( @TABLE_FILES, @TABLE_DIRS ) {
+            $old_vs_new{ $old_name . $_ } = $new_name . $_;
+        }
+        return %old_vs_new;
+    }
+}
 TRANSACTION: {
 
     # Timeout for unreleased table lock (both exclusive and shared) in seconds

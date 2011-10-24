@@ -93,29 +93,13 @@ STRUCTURE_CHANGER: {
             croak "(Database->new_table) Table name $name is too long";
         } else {
 
-            # Create data file, log file and definition file
-            open my $datafile, '+>', $data_path
-              or croak
-"(Database->new_table) Cannot create datafile $data_path: $OS_ERROR";
-            close $datafile
-              or carp "(Database->new_table) Cannot close datafile $data_path";
-            open my $logfile, '+>', $def_path
-              or croak
-              "(Database->new_table Cannot create logfile $log_path: $OS_ERROR";
-            close $logfile
-              or carp "(Database->new_table) Cannot close logfile $log_path";
-            open my $deffile, '+>', $log_path
-              or croak
-"(Database->new_table) Cannot create definition file $def_path: $OS_ERROR";
-            close $deffile
-              or carp
-              "(Database->new_table) Cannot close definition file $def_path";
-
-            # Create directory for holding shared locks
-            my $shared_locks_directory = $self->{'path'} . $name . ".shared";
-            mkdir $shared_locks_directory
-              or croak
-"(Database->new_table) Cannot create shared locks directory $shared_locks_directory: $OS_ERROR";
+            # Create files and directories for the new table
+            foreach (@Constant::TABLE_FILES) {
+                Util::create_empty_file( $self->{'path'} . $name . $_ );
+            }
+            foreach (@Constraint::TABLE_DIRS) {
+                mkdir $self->{'path'} . $name . $_;
+            }
             my $new_table = Table->new( $self, $self->{'path'}, $name );
 
             # Add database columns (default columns) into the table
@@ -136,24 +120,16 @@ STRUCTURE_CHANGER: {
         # Parameters: self, table name
         my ( $self, $name ) = @_;
         if ( exists $self->{'tables'}->{$name} ) {
-
-            # Delete data file
-            unlink $self->{'path'} . $name . '.data'
-              or carp
-"(Database->delete_table) Unable to delete data file of table $name: $OS_ERROR";
-
-            # Delete log file
-            unlink $self->{'path'} . $name . '.log'
-              or carp
-"(Database->delete_table) Unable to delete log file of table $name: $OS_ERROR";
-
-            # Delete definition file
-            unlink $self->{'path'} . $name . '.def'
-              or carp
-"(Database->delete_table) Unable to delete definition file of table $name: $OS_ERROR";
-
-            # Remove shared locks directory
-            rmtree $self->{'path'} . $name . '.shared';
+            foreach (@Constant::TABLE_FILES) {
+                unlink $self->{'path'} . $name
+                  or carp
+"(Database->delete_table) Unable to delete file $_: $OS_ERROR";
+            }
+            foreach (@Constraint::TABLE_DIRS) {
+                rmtree $_
+                  or carp
+"(Database->delete_table) Unable to delete directory $_: $OS_ERROR";
+            }
 
             # Remove the table from table hash
             delete $self->{'tables'}->{$name};
@@ -178,18 +154,14 @@ STRUCTURE_CHANGER: {
                 my $new_data_path = $new_name . '.data';
                 my $new_log_path  = $new_name . '.log';
                 my $new_def_path  = $new_name . '.def';
-                rename $self->{'path'} . $old_name . '.data',
-                  $self->{'path'} . $new_name . '.data'
-                  or croak
-"(Database->rename_table) Unable to rename $old_name.data into $new_name.data";
-                rename $self->{'path'} . $old_name . '.log',
-                  $self->{'path'} . $new_name . '.log'
-                  or croak
-"(Database->rename_table) Unable to rename $old_name.log into $new_name.log";
-                rename $self->{'path'} . $old_name . '.def',
-                  $self->{'path'} . $new_name . '.def'
-                  or croak
-"(Database->rename_table) Unable to rename $old_name.def into $new_name.def";
+                while ( my ( $old_file_name, $new_file_name ) =
+                    each
+                    %{ Constant::renamed_table_files( $old_name, $new_name ) } )
+                {
+                    rename $old_name, $new_name
+                      or croak
+"(Database->rename_table) Cannot rename $old_name into $new_name: $OS_ERROR";
+                }
 
                 # Update table hash
                 my $table = $self->{'tables'}->{$new_name} =

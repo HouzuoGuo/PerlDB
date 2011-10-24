@@ -61,4 +61,15 @@ sub remove_by_regex {
       or croak "(remove_by_regex) Unable to close file handler: $OS_ERROR";
     return;
 }
+
+# Create an empty text file
+sub create_empty_file {
+
+    # Parameter: path
+    my $path = shift;
+    open my $file, '>', $path
+      or croak "(Util->create_empty_file) Cannot create file $path: $OS_ERROR";
+    close $file or {};
+    return;
+}
 1;
