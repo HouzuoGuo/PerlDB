@@ -191,7 +191,7 @@ READER: {
         $self->seek_row($row_number);
 
         # Read a whole row, split it later
-        my $row = readline($self->{'datafile'});
+        my $row = readline( $self->{'datafile'} );
         my %hash;
 
         # Split the row into column_name:value pairs
@@ -352,6 +352,10 @@ STRUCTURE_CHANGER: {
 
         # Parameters: self, new column name, new column length
         my ( $self, $column_name, $length ) = @_;
+        if ( not defined $length ) {
+            croak
+              "(Table->add_column) Length must be specified for $column_name";
+        }
         if ( exists $self->{'columns'}->{$column_name} ) {
             croak "(Table->add_column) Column $column_name already exists";
         } elsif ( length $column_name > $Constant::COLUMN_NAME_LIMIT ) {

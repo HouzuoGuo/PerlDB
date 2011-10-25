@@ -159,7 +159,7 @@ sub locks_of {
         if ( time - $exclusive_lock > $Constant::LOCK_TIMEOUT ) {
 
             # Delete the exclusive lock file
-            unlink $exclusive_lock_file
+            unlink $exclusive_lock_path
               or croak
 "(Transaction->locks_of) Unable to remove expired lock $exclusive_lock_path: $OS_ERROR";
         }
