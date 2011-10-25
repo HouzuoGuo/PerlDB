@@ -38,7 +38,7 @@ sub new {
     my $type = shift;
 
     # Attributes: transaction logs, acquired locks, an ID (current system time)
-    my $self = { 'log' => [], 'locked_tables' => {}, 'id' => time };
+    my $self = { 'log' => [], 'locked_tables' => [], 'id' => time };
     bless $self, $type;
     return $self;
 }
@@ -76,6 +76,7 @@ sub e_lock {
         # Create exclusive lock file and write this ID into it
         Util::create_file( $table->{'path'} . $table->{'name'} . '.exclusive',
                            $self->{'id'} );
+        push @{ $self->{'locked_tables'} }, $table;
     }
     return;
 }
@@ -103,6 +104,7 @@ sub s_lock {
         # Create shared lock file and name it using this transaction ID
         Util::create_file(
              $table->{'path'} . $table->{'name'} . '.shared/' . $self->{'id'} );
+        push @{ $self->{'locked_tables'} }, $table;
     }
     return;
 }
@@ -191,18 +193,17 @@ sub insert {
     my ( $self, $table, $row ) = @_;
     eval {
         my $physically_insert = Insert->new( $table, $row );
-
         # Remember the row number of the new row
         push @{ $self->{'log'} },
-          (
+          {
             'op'         => 'insert',
-            'row_number' => $table->number_of_rows,
+            'row_number' => $table->number_of_rows - 1,
             'table'      => $table
-          );
+          };
         1;
       }
       or do {
-        $self->rollback();
+        $self->rollback;
         croak "(Transaction->insert) Failed to insert the row:@!";
       };
     return;
@@ -219,12 +220,12 @@ sub update {
 
         # Remember: the updated row number, the original row values
         push @{ $self->{'log'} },
-          (
+          {
             'op'         => 'update',
             'row_number' => $row_number,
             'old_row'    => $old_row,
             'table'      => $table
-          );
+          };
       }
       or do {
         $self->rollback();
@@ -244,11 +245,11 @@ sub delete_row {
 
         # Remember: the deleted row number, the original row values
         push @{ $self->{'log'} },
-          (
-            'op'         => 'update',
+          {
+            'op'         => 'delete',
             'row_number' => $row_number,
             'table'      => $table
-          );
+          };
       }
       or do {
         $self->rollback();
@@ -264,7 +265,7 @@ sub rollback {
     my $self = shift;
 
     # Reverse actions
-    foreach ( reverse @{ my $self->{'log'} } ) {
+    foreach ( reverse @{ $self->{'log'} } ) {
         if ( $_->{'op'} eq 'insert' ) {
 
             # Roll back of insert = delete
@@ -288,6 +289,11 @@ sub commit {
 
     # Parameter: self
     my $self = shift;
+
+    # Unlock all locked tables
+    foreach ( @{ $self->{'locked_tables'} } ) {
+        $self->unlock($_);
+    }
     return;
 }
 1;
