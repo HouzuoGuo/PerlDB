@@ -11,6 +11,16 @@
 # Subroutines in Transaction must be used for inserting, updating or deleting
 # rows in tables, thus the operations may be captured into log and be used for
 # rolling back when necessary.
+#
+# Transaction ID is a floating point of current system time.
+# Exclusive lock is a file "table name.exclusive", the content of the file
+# determines the transaction ID which acquired the lock.
+# Shared lock is a file "table name.shared/transaction ID", the file name
+# determines the transaction ID which acquired the lock.
+# Locks have a timeout, if a lock is not released within the timeout, then it
+# is automatically released next time Transaction->locks_of function is called.
+# Due to the mechanism transaction ID is allocated, thus the locking mechanism
+# is not guaranteed to be safe.
 package Transaction;
 use strict;
 use warnings;
@@ -38,12 +48,19 @@ sub e_lock {
 
     # Parameters: self, the table
     my ( $self, $table ) = @_;
-    my %existing_locks = $self->locks_of($table);
+    my %existing_locks = %{ $self->locks_of($table) };
 
-    # If someone else has acquired shared lock or exclusive lock
-    if (     $existing_locks{'shared'}
-         and $existing_locks{'shared'} != [ $self->{'id'} ]
-         or $existing_locks{'exclusive'} ne $self->{'id'} )
+    # If any of the following happens, carp:
+    # 1. Someone acquired shared lock, and it wasn't this transaction
+    # 2. Someone acquired exclusive lock, and it wasn't this transaction
+    if (
+         (
+           @{ $existing_locks{'shared'} }
+           and $existing_locks{'shared'}[0] ne $self->{'id'}
+         )
+         or (     $existing_locks{'exclusive'} ne q{}
+              and $existing_locks{'exclusive'} ne $self->{'id'} )
+      )
     {
         carp '(Transaction->e_lock) '
           . $self->{'id'}
@@ -51,12 +68,12 @@ sub e_lock {
           . $table->{'name'};
     } else {
 
-        # If a shared lock was acquired previously, remove that lock
-        if ( $existing_locks{'shared'} == [ $self->{'id'} ] ) {
+        # If this transaction previously acquired a shared lock, remove it
+        if ( $existing_locks{'shared'}[0] eq $self->{'id'} ) {
             $self->unlock($table);
         }
 
-        # Create exclusive lock file and write this ID in
+        # Create exclusive lock file and write this ID into it
         Util::create_file( $table->{'path'} . $table->{'name'} . '.exclusive',
                            $self->{'id'} );
     }
@@ -66,16 +83,24 @@ sub e_lock {
 # Lock a table in shared mode
 sub s_lock {
     my ( $self, $table ) = @_;
-    my %existing_locks = $self->locks_of($table);
-    if ( $existing_locks{'exclusive'} ne $self->{'id'} ) {
+    my %existing_locks = %{ $self->locks_of($table) };
+
+    # If someone else has got exclusive lock
+    if (     $existing_locks{'exclusive'} ne q{}
+         and $existing_locks{'exclusive'} ne $self->{'id'} )
+    {
         carp '(Transaction->s_lock) '
           . $self->{'id'}
           . ' is unable to acquire shared lock on table '
           . $table->{'name'};
     } else {
-        if ( $existing_locks{'exclusive'} ne $self->{'id'} ) {
+
+        # If this transaction previously acquired an exclusive lock, remove it
+        if ( $existing_locks{'exclusive'} eq $self->{'id'} ) {
             $self->unlock($table);
         }
+
+        # Create shared lock file and name it using this transaction ID
         Util::create_file(
              $table->{'path'} . $table->{'name'} . '.shared/' . $self->{'id'} );
     }
@@ -95,16 +120,18 @@ sub locks_of {
 
     # Read each file's name (each file name is a transaction ID)
     while ( readdir $shared_locks_dir ) {
+        if ( $_ ne q{.} and $_ ne q{..} ) {
 
-        # If the transaction has expired
-        if ( time - $_ > $Constant::LOCK_TIMEOUT ) {
+            # If the transaction has expired
+            if ( time - $_ > $Constant::LOCK_TIMEOUT ) {
 
-            # Delete the shared lock file
-            unlink $_
-              or carp
+                # Delete the shared lock file
+                unlink $table->{'path'} . $table->{'name'} . '.shared/' . $_
+                  or carp
 "(Transaction->locks_of) Unable to removed expired lock $_: $OS_ERROR";
-        } else {
-            push @shared_locks, $_;
+            } else {
+                push @shared_locks, $_;
+            }
         }
     }
     closedir $shared_locks_dir;
@@ -112,6 +139,9 @@ sub locks_of {
     # Exclusive lock file path
     my $exclusive_lock_path =
       $table->{'path'} . $table->{'name'} . '.exclusive';
+
+    # Exclusive lock transaction ID defaults to empty string
+    $exclusive_lock = q{};
 
     # If exclusive lock exists
     if ( -f $exclusive_lock_path ) {
@@ -121,25 +151,36 @@ sub locks_of {
           or croak
 "(Transaction->locks_of) Unable to read exclusive lock file $exclusive_lock_path: $OS_ERROR";
         $exclusive_lock = readline $exclusive_lock_file;
-        close my $exclusive_lock_file
+        close $exclusive_lock_file
           or carp
 "(Transaction->locks_of) Exclusive lock file $exclusive_lock_path is left open";
 
         # If the transaction has expired
-        if ( time - $_ > $Constant::LOCK_TIMEOUT ) {
+        if ( time - $exclusive_lock > $Constant::LOCK_TIMEOUT ) {
 
             # Delete the exclusive lock file
             unlink $exclusive_lock_file
               or croak
-"(Transaction->locks_of) Unable to remove expired lock $exclusive_lock_path";
+"(Transaction->locks_of) Unable to remove expired lock $exclusive_lock_path: $OS_ERROR";
         }
     }
-    return ( "shared" => @shared_locks, "exclusive" => $exclusive_lock );
+    return { 'shared' => \@shared_locks, 'exclusive' => $exclusive_lock };
 }
 
 # Unlock a table, no matter it was locked exclusively or "sharedly"
 sub unlock {
     my ( $self, $table ) = @_;
+    my %existing_locks = %{ $self->locks_of($table) };
+    if ( $existing_locks{'exclusive'} eq $self->{'id'} ) {
+        unlink $table->{'path'} . $table->{'name'} . '.exclusive'
+          or carp
+          "(Transaction->unlock) Unable to release exclusive lock: $OS_ERROR";
+    } elsif ( Util::in_array( $self->{'id'}, @{ $existing_locks{'shared'} } ) )
+    {
+        unlink $table->{'path'} . $table->{'name'} . '.shared/' . $self->{'id'}
+          or carp carp
+          "(Transaction->unlock) Unable to release shared lock: $OS_ERROR";
+    }
     return;
 }
 

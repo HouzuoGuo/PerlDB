@@ -21,7 +21,6 @@ use diagnostics;
 use Carp;
 use English qw(-no_match_vars);
 use Util;
-use List::MoreUtils qw{ any };
 INITIALIZER: {
 
     # Constructor
@@ -88,7 +87,7 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
         while ( my ( $alias, $column ) = each %{ $self->{'columns'} } ) {
 
             # If it is not one we want to keep
-            if ( not any { $_ eq $alias } @column_aliases ) {
+            if ( not Util::in_array( $alias, @column_aliases ) ) {
 
                 # Find out its associated table name
                 my $table_name = $column->{'table'};

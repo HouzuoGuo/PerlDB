@@ -5,6 +5,7 @@ use warnings;
 use diagnostics;
 use Carp;
 use English qw(-no_match_vars);
+use List::MoreUtils qw{ any };
 
 # Trim string into a desired length
 sub trim {
@@ -74,5 +75,13 @@ sub create_file {
     }
     close $file or carp "(Util->create_empty_file) Cannot close file $path";
     return;
+}
+
+# Return whether an element is in an array
+sub in_array {
+
+    # Parameters: element, array
+    my ( $element, @array ) = @_;
+    return any { $_ eq $element } @array;
 }
 1;
