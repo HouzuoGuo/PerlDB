@@ -59,12 +59,8 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
             my $row = $table_ref->read_row( $row_numbers->[$_] );
 
             # Use the filter function to pick out kept row numbers
-            if (
-                 not $row->{'~del'}
-                 and $filter_function->(
-                               Util::trimmed( $row->{$column_name} ), $parameter
-                 )
-              )
+            if (     $row->{'~del'} ne 'y'
+                 and $filter_function->( $row->{$column_name}, $parameter ) )
             {
                 push @kept, $_;
             }
@@ -193,8 +189,8 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
             foreach my $rn2 ( 0 .. $table_ref->number_of_rows - 1 ) {
                 my $r1 = $t1_ref->read_row($rn1);
                 my $r2 = $table_ref->read_row($rn2);
-                if (     not $r1->{'~del'}
-                     and not $r2->{'~del'}
+                if (     $r1->{'~del'} ne 'y'
+                     and $r2->{'~del'} ne 'y'
                      and Util::trimmed( $r1->{$t1_column} ) eq
                      Util::trimmed( $r2->{$column_name} ) )
                 {
