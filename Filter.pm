@@ -7,7 +7,7 @@ use Carp;
 use English qw(-no_match_vars);
 use Util;
 
-# Test if two trimmed string scalars are equal
+# Test if two trimmed strings are identical
 sub equals {
 
     # Parameters: value1, value2
