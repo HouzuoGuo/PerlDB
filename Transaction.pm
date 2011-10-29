@@ -124,7 +124,7 @@ sub locks_of {
 
     # Read each file's name (each file name is a transaction ID)
     while ( readdir $shared_locks_dir ) {
-        if ( $_ ne q{.} and $_ ne q{..} ) {
+        if ( $_ and $_ ne q{.} and $_ ne q{..} ) {
 
             # If the transaction has expired
             if ( time - $_ > $Constant::LOCK_TIMEOUT ) {
