@@ -44,7 +44,6 @@ $tr->insert( $friend, { 'NAME' => 'Buzz',      'AGE' => 18 } );
 $tr->insert( $friend, { 'NAME' => 'Christoph', 'AGE' => 15 } );
 $tr->insert( $friend, { 'NAME' => 'Christina', 'AGE' => 16 } );
 $tr->insert( $friend, { 'NAME' => 'Stephanie', 'AGE' => 18 } );
-$tr->insert( $friend, { 'NAME' => 'Stephanie', 'AGE' => 18 } );
 
 # Insert rows into CONTACT table;
 $tr->insert( $contact,
@@ -55,8 +54,6 @@ $tr->insert( $contact,
              { 'NAME' => 'Christoph', 'WEB' => 'FB', 'USERNAME' => 'cg1' } );
 $tr->insert( $contact,
              { 'NAME' => 'Christina', 'WEB' => 'FB', 'USERNAME' => 'cg2' } );
-$tr->insert( $contact,
-             { 'NAME' => 'Stephanie1', 'WEB' => 'Tw', 'USERNAME' => 'dfs' } );
 
 # Commit the transaction
 $tr->commit;

@@ -251,7 +251,7 @@ OTHER_FUNCTIONS: {
             print "Table $name @{$ref->{'row_numbers'}}\n";
         }
         while ( my ( $alias, $ref ) = each %{ $self->{'columns'} } ) {
-            print "Alias $alias of table $ref->{'table'} $ref->{'name'}\n";
+            print "$alias => $ref->{'table'} . $ref->{'name'}\n";
         }
         return $self;
     }
@@ -260,10 +260,19 @@ OTHER_FUNCTIONS: {
     sub copy {
         my $self = shift;
         my $copy = RA->new();
-
-        # Make a copy of the two hashes which store RA result
-        $copy->{'tables'}  = \%{ $self->{'tables'} };
-        $copy->{'columns'} = \%{ $self->{'columns'} };
+        while ( my ( $table, $attributes ) = each %{ $self->{'tables'} } ) {
+            my @row_numbers_copy = @{ $attributes->{'row_numbers'} };
+            $copy->{'tables'}->{$table} = {
+                                            'ref' => $attributes->{'ref'},
+                                            'row_numbers' => \@row_numbers_copy
+            };
+        }
+        while ( my ( $column, $attributes ) = each %{ $self->{'columns'} } ) {
+            $copy->{'columns'}->{$column} = {
+                                              'table' => $attributes->{'table'},
+                                              'name'  => $attributes->{'name'}
+            };
+        }
         return $copy;
     }
 
