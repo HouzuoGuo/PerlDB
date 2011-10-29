@@ -30,6 +30,7 @@ INITIALIZER: {
         -d $path or croak "(Database->new) $path has to be a directory";
 
         # Attributes: path of database directory, a hash of table name and refs
+        # The path must end with /
         my $self = { 'path' => $path, 'tables' => {} };
         opendir my $dir, $path
           or croak "(Database->new) Unable to open directory $path: $OS_ERROR";
@@ -44,11 +45,13 @@ INITIALIZER: {
         }
         closedir $dir;
         bless $self, $type;
+        $self->init_dir;
         return $self;
     }
 
     # Initialize a database directory
     # If a directory is not initialize, many PerlDB features may malfunction
+    # You do not need to call this function by yourself
     sub init_dir {
 
         # Parameter: self

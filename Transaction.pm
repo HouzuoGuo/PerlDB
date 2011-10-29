@@ -193,6 +193,7 @@ sub insert {
     my ( $self, $table, $row ) = @_;
     eval {
         my $physically_insert = Insert->new( $table, $row );
+
         # Remember the row number of the new row
         push @{ $self->{'log'} },
           {
@@ -293,6 +294,17 @@ sub commit {
     # Unlock all locked tables
     foreach ( @{ $self->{'locked_tables'} } ) {
         $self->unlock($_);
+    }
+    return;
+}
+
+# Acquire exclusive lock on all tables in a database (For table modification)
+sub lock_all {
+
+    # Parameters: self, the database
+    my ( $self, $db ) = @_;
+    while ( my ( $_, $table ) = each %{ $db->{'tables'} } ) {
+        $self->e_lock($table);
     }
     return;
 }
