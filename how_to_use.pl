@@ -4,7 +4,7 @@ use diagnostics;
 
 # Assign $dir to an empty directory, you must have read/write access to it
 # The directory will be the workspace for the example database
-my $dir = '/usr/home/houzuo/temp/';
+my $dir = '/home/houzuo/temp/';
 
 # Open the directory as a database
 use Database;
@@ -43,6 +43,7 @@ Constraint::fk( $contact, 'NAME', $friend, 'NAME' );
 $tr->insert( $friend, { 'NAME' => 'Buzz',      'AGE' => 18 } );
 $tr->insert( $friend, { 'NAME' => 'Christoph', 'AGE' => 15 } );
 $tr->insert( $friend, { 'NAME' => 'Christina', 'AGE' => 16 } );
+$tr->insert( $friend, { 'NAME' => 'Stephanie', 'AGE' => 18 } );
 $tr->insert( $friend, { 'NAME' => 'Stephanie', 'AGE' => 18 } );
 
 # Insert rows into CONTACT table;

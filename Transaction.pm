@@ -207,7 +207,7 @@ sub insert {
       }
       or do {
         $self->rollback;
-        croak "(Transaction->insert) Failed to insert the row:@!";
+        croak "(Transaction->insert) Failed to insert the row:$@";
       };
     return;
 }
@@ -233,7 +233,7 @@ sub update {
       or do {
         $self->rollback();
         croak "(Transaction->update) Failed to update row $row_number into "
-          . Util::h2s($row) . " :@!";
+          . Util::h2s($row) . " :$@";
       };
     return;
 }
@@ -256,7 +256,7 @@ sub delete_row {
       }
       or do {
         $self->rollback();
-        croak "(Transaction->delete) Failed to delete row $row_number:@!";
+        croak "(Transaction->delete) Failed to delete row $row_number:$@";
       };
     return;
 }
