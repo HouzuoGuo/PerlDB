@@ -1,5 +1,4 @@
 # Insert to table operation including execution of appropriate table triggers.
-# Also keeps enough information for roll-back in a transaction.
 package Insert;
 use strict;
 use warnings;
@@ -14,8 +13,8 @@ sub new {
     # Parameters: type, reference to table, new row values (in hash)
     my ( $type, $table, $row ) = @_;
 
-    # Attributes: new row, new row's row number
-    my $self = { 'row' => $row, 'row_number' => $table->number_of_rows };
+    # Attributes: none
+    my $self = {};
     my $ra;
 
     # 1. Prepare RA for "before" triggers

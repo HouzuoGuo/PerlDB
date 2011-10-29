@@ -1,5 +1,4 @@
 # Update table row operation including execution of appropriate table triggers.
-# Also keeps enough information for roll-back in a transaction.
 package Update;
 use strict;
 use warnings;
@@ -15,9 +14,8 @@ sub new {
     # new row values (in hash)
     my ( $type, $table, $row_number, $row ) = @_;
 
-    # Attributes: updated row's row number, old row values
-    my $self =
-      { 'row_number' => $row_number, 'row' => $table->read_row($row_number) };
+    # Attributes: none
+    my $self = {};
     my $ra;
 
     # 1. Prepare RA for "before" triggers
