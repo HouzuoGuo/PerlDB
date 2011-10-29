@@ -69,7 +69,9 @@ sub e_lock {
     } else {
 
         # If this transaction previously acquired a shared lock, remove it
-        if ( $existing_locks{'shared'}[0] eq $self->{'id'} ) {
+        if (     $existing_locks{'shared'}[0]
+             and $existing_locks{'shared'}[0] eq $self->{'id'} )
+        {
             $self->unlock($table);
         }
 
