@@ -299,6 +299,9 @@ sub commit {
     foreach ( @{ $self->{'locked_tables'} } ) {
         $self->unlock($_);
     }
+
+    # Use a new ID (timestamp)
+    $self->{'id'} = time;
     return;
 }
 
