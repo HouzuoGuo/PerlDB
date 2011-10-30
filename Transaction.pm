@@ -182,9 +182,11 @@ sub unlock {
     } elsif ( Util::in_array( $self->{'id'}, @{ $existing_locks{'shared'} } ) )
     {
         unlink $table->{'path'} . $table->{'name'} . '.shared/' . $self->{'id'}
-          or carp carp
+          or carp
           "(Transaction->unlock) Unable to release shared lock: $OS_ERROR";
     }
+    $self->{'locked_tables'} =
+      Util::remove_from_array( $table, @{ $self->{'locked_tables'} } );
     return;
 }
 
@@ -305,8 +307,10 @@ sub lock_all {
 
     # Parameters: self, the database
     my ( $self, $db ) = @_;
-    while ( my ( $_, $table ) = each %{ $db->{'tables'} } ) {
-        $self->e_lock($table);
+    while ( my ( $name, $table ) = each %{ $db->{'tables'} } ) {
+        if ( substr( $name, 0, 1 ) ne q{~} ) {
+            $self->e_lock($table);
+        }
     }
     return;
 }

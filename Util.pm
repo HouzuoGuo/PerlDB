@@ -84,4 +84,13 @@ sub in_array {
     my ( $element, @array ) = @_;
     return any { $_ eq $element } @array;
 }
+
+# Remove an element from array and return the result
+sub remove_from_array {
+
+    # Parametesr: element, array
+    my ( $element, @array ) = @_;
+    my @new_array = grep { defined $_ and $_ ne $element } @array;
+    return \@new_array;
+}
 1;

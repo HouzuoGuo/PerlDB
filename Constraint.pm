@@ -68,16 +68,16 @@ sub remove_pk {
     $ra->prepare_table($trigger_table);
 
     # Filter by column name
-    $ra->select( 'column', \Filter::equals, $column_name );
+    $ra->select( 'column', \&Filter::equals, $column_name );
 
     # Filter by table name
-    $ra->select( 'table', \Filter::equals, $table->{'name'} );
+    $ra->select( 'table', \&Filter::equals, $table->{'name'} );
 
     # For each row
-    foreach ( $ra->{'tables'}->{ $table->{'name'} }->{'row_numbers'} ) {
+    foreach ( @{ $ra->{'tables'}->{'~before'}->{'row_numbers'} } ) {
 
         # Delete the row (delete the constraint)
-        $trigger_table->delete_row_($_);
+        $trigger_table->delete_row($_);
     }
     return;
 }
@@ -104,7 +104,7 @@ sub remove_fk {
                  $pk_table->{'name'} . q{;} . $pk_column_name );
 
     # For each row
-    foreach ( @{$ra->{'tables'}->{ '~before' }->{'row_numbers'}} ) {
+    foreach ( @{ $ra->{'tables'}->{'~before'}->{'row_numbers'} } ) {
 
         # Delete the row (delete the constraint)
         $trigger_table->delete_row($_);

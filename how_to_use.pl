@@ -30,7 +30,7 @@ use Transaction;
 my $tr = Transaction->new;
 
 # Lock all tables in the database
-$tr->lock_all;
+$tr->lock_all($db);
 
 # Create PK constraint on FRIEND.NAME
 use Constraint;
@@ -71,26 +71,67 @@ foreach ( 0 .. $contact->number_of_rows - 1 ) {
 # 1. Lock CONTACT table in exclusive mode
 $tr->e_lock($contact);
 
-# (Use RA (relational algebra) to find the rows we want to update)
+# 2. Initialize a RA
 use RA;
 my $update_source = RA->new;
 
-# 2. Put table CONTACT into RA
+# 3. Put table CONTACT into RA
 $update_source->prepare_table($contact);
 use Filter;
 
-# 3. Tell RA to filter rows by WEB column
+# 4. Filter by WEB column
 $update_source->select( 'WEB', \&Filter::equals, 'FB' );
 
-# 4. (After filtering), iterate row numbers left
+# 5. Iterate the result (row numbers in CONTACT table)
 foreach ( @{ $update_source->{'tables'}->{'CONTACT'}->{'row_numbers'} } ) {
 
-    # Update each row and set WEB = Facebook
+    # 6. Update each row and set WEB = Facebook
     $tr->update( $contact, $_, { 'WEB' => 'Facebook' } );
 }
 $tr->commit;
+print "\nAfter update:\n";
 foreach ( 0 .. $contact->number_of_rows - 1 ) {
     print Util::h2s( $contact->read_row($_) ), "\n";
 }
 
-# DELETE CONTACT 
+# DELETE FROM FRIEND WHERE NAME = (SELECT NAME FROM CONTACT WHERE WEB = 'Facebook')
+# 1. Lock CONTACT table in shared mode
+$tr->s_lock($contact);
+
+# 2. Lock FRIEND table in exclusive mode
+$tr->e_lock($friend);
+
+# 3. Join CONTACT and FRIEND using NAME
+my $delete_source = RA->new;
+$delete_source->prepare_table($contact);
+$delete_source->nl_join( 'NAME', $friend, 'NAME' );
+
+# 4. Filter by WEB column
+$delete_source->select( 'WEB', \&Filter::equals, 'Facebook' );
+
+# 5. Iterate the result (row numbers in FRIEND table)
+foreach ( @{ $delete_source->{'tables'}->{'FRIEND'}->{'row_numbers'} } ) {
+
+    # 6. Delete the row
+    $tr->delete_row( $friend, $_ );
+}
+$tr->commit;
+print "\nAfter delete:\n";
+foreach ( 0 .. $friend->number_of_rows - 1 ) {
+    print Util::h2s( $friend->read_row($_) ), "\n";
+}
+1;
+
+# Remove PK constraint
+Constraint::remove_pk( $friend, 'NAME' );
+
+# Now duplicated name will not raise an exception
+$tr->insert( $friend, { 'NAME' => 'Buzz' } );
+
+# Remove FK constraint
+Constraint::remove_fk( $contact, 'NAME', $friend, 'NAME' );
+
+# Insert a NAME without corresponding FIREND.NAME will not raise an exception
+$tr->insert( $contact, { 'NAME' => 'Joshua' } );
+$tr->commit;
+1;
