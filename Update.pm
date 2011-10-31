@@ -24,18 +24,20 @@ sub new {
     $ra->select( 'table', \&Filter::equals, $table->{'name'} );
 
     # 2. Perform "before" triggers
-    Trigger::execute_trigger( $table, $ra, 'update', $self->{'row'}, $row );
+    Trigger::execute_trigger( $table, $ra, 'update',
+                              $table->read_row($row_number), $row );
 
-    # 2. Physically update the row
+    # 3. Physically update the row
     $table->update( $row_number, $row );
 
-    # 3. Prepare RA for "after" triggers
+    # 4. Prepare RA for "after" triggers
     $ra = RA->new();
     $ra->prepare_table( $table->{'database'}->table('~after') );
     $ra->select( 'table', \&Filter::equals, $table->{'name'} );
 
-    # 4. Perform "after" triggers
-    Trigger::execute_trigger( $table, $ra, 'update', $self->{'row'}, $row );
+    # 5. Perform "after" triggers
+    Trigger::execute_trigger( $table, $ra, 'update',
+                              $table->read_row($row_number), $row );
     bless $self, $type;
     return $self;
 }

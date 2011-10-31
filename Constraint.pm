@@ -53,6 +53,24 @@ sub fk {
                    'parameters' => $pk_table->{'name'} . q{;} . $pk_column_name
                  }
     );
+    $pk_table->{'database'}->table('~before')->insert(
+                 {
+                   'table'      => $pk_table->{'name'},
+                   'column'     => $pk_column_name,
+                   'function'   => 'update_restricted',
+                   'operation'  => 'update',
+                   'parameters' => $fk_table->{'name'} . q{;} . $fk_column_name
+                 }
+    );
+    $pk_table->{'database'}->table('~before')->insert(
+                 {
+                   'table'      => $pk_table->{'name'},
+                   'column'     => $pk_column_name,
+                   'function'   => 'delete_restricted',
+                   'operation'  => 'delete',
+                   'parameters' => $fk_table->{'name'} . q{;} . $fk_column_name
+                 }
+    );
     return;
 }
 

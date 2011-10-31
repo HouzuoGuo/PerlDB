@@ -25,15 +25,15 @@ sub new {
     # 2. Perform "before" triggers
     Trigger::execute_trigger( $table, $ra, 'insert', $row );
 
-    # 2. Physically insert the record
+    # 3. Physically insert the record
     $table->insert($row);
 
-    # 3. Prepare RA for "after" triggers
+    # 4. Prepare RA for "after" triggers
     $ra = RA->new();
     $ra->prepare_table( $table->{'database'}->table('~after') );
     $ra->select( 'table', \&Filter::equals, $table->{'name'} );
 
-    # 4. Perform "after" triggers
+    # 5. Perform "after" triggers
     Trigger::execute_trigger( $table, $ra, 'insert', $row );
     bless $self, $type;
     return $self;

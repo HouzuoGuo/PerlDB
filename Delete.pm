@@ -23,18 +23,20 @@ sub new {
     $ra->select( 'table', \&Filter::equals, $table->{'name'} );
 
     # 2. Perform "before" triggers
-    Trigger::execute_trigger( $table, $ra, 'delete', $self->{'row'} );
+    Trigger::execute_trigger( $table, $ra, 'delete',
+                              $table->read_row($row_number) );
 
-    # 2. Physically delete the row
+    # 3. Physically delete the row
     $table->delete_row($row_number);
 
-    # 3. Prepare RA for "after" triggers
+    # 4. Prepare RA for "after" triggers
     $ra = RA->new();
     $ra->prepare_table( $table->{'database'}->table('~after') );
     $ra->select( 'table', \&Filter::equals, $table->{'name'} );
 
-    # 4. Perform "after" triggers
-    Trigger::execute_trigger( $table, $ra, 'delete', $self->{'row'} );
+    # 5. Perform "after" triggers
+    Trigger::execute_trigger( $table, $ra, 'delete',
+                              $table->read_row($row_number) );
     bless $self, $type;
     return $self;
 }

@@ -112,20 +112,11 @@ CONSTRAINTS: {
 
         # New value for the column
         my $new_value = $params->{'row1'}->{$column_name};
-
-        # For each row in the affected table
-        foreach my $cursor ( 0 .. $table->number_of_rows - 1 ) {
-
-            # Croak if any existing value duplicates the new value
-            if ( Util::trimmed( $table->read_row($cursor)->{$column_name} ) eq
-                 $new_value )
-            {
-                croak
-                  "(Trigger->pk) New value $new_value violates PK constraint on"
-                  . ' Table '
-                  . $table->{'name'}
-                  . " column $column_name";
-            }
+        if ( Trigger::found( $new_value, $table, $column_name ) ) {
+            croak "(Trigger->pk) New value $new_value violates PK constraint on"
+              . ' Table '
+              . $table->{'name'}
+              . " column $column_name";
         }
         return;
     }
@@ -149,22 +140,7 @@ CONSTRAINTS: {
 
         # Foreign key column name ([1] in extra parameters)
         my $pk_column = $extra_params[1];
-
-        # Whether the new value of the column is found in its PK table
-        my $found;
-
-        # For each row in PK table
-        foreach my $cursor ( 0 .. $pk_table->number_of_rows - 1 ) {
-
-            # If any value of the PK column corresponds to the new value
-            if ( Util::trimmed( $pk_table->read_row($cursor)->{$pk_column} ) eq
-                 $new_value )
-            {
-                $found = 1;
-                last;
-            }
-        }
-        if ( not $found ) {
+        if ( not Trigger::found( $new_value, $pk_table, $pk_column ) ) {
             croak "(Trigger->fk) New value $new_value violates FK constraint on"
               . ' Table '
               . $table->{'name'}
@@ -176,9 +152,76 @@ CONSTRAINTS: {
 TRIGGERS: {
 
     sub delete_restricted {
+
+        # Parameter: hash of parameters passed from trigger, extra paremeters
+        my ( $params, @extra_params ) = @_;
+
+        # The affected table
+        my $table = $params->{'table'};
+
+        # The affected column
+        my $column_name = $params->{'column'};
+
+        # Value of the column
+        my $value = Util::trimmed($params->{'row1'}->{$column_name});
+
+        # Reference to FK table (table name is [0] in extra parameters)
+        my $fk_table = $table->{'database'}->table( $extra_params[0] );
+
+        # Foreign key column name ([1] in extra parameters)
+        my $fk_column = $extra_params[1];
+        if ( Trigger::found( $value, $fk_table, $fk_column ) ) {
+            croak "(Trigger->delete_restricted) Delete of value $value is "
+              . 'restricted on Table '
+              . $table->{'name'}
+              . " column $fk_column";
+        }
+        return;
     }
 
     sub update_restricted {
+
+        # Parameter: hash of parameters passed from trigger, extra paremeters
+        my ( $params, @extra_params ) = @_;
+
+        # The affected table
+        my $table = $params->{'table'};
+
+        # The affected column
+        my $column_name = $params->{'column'};
+
+        # Old value of the column
+        my $value = Util::trimmed( $params->{'row1'}->{$column_name} );
+
+        # Reference to FK table (table name is [0] in extra parameters)
+        my $fk_table = $table->{'database'}->table( $extra_params[0] );
+
+        # Foreign key column name ([1] in extra parameters)
+        my $fk_column = $extra_params[1];
+        if ( Trigger::found( $value, $fk_table, $fk_column ) ) {
+            croak "(Trigger->update_restricted) Update of value $value is "
+              . 'restricted on Table '
+              . $table->{'name'}
+              . " column $fk_column";
+        }
+        return;
+    }
+}
+
+# General behaviors of some triggers
+BEHAVIORS: {
+
+    # Return 1 if a value is found in a column, otherwise 0
+    sub found {
+        my ( $value, $table, $column_name ) = @_;
+        foreach my $cursor ( 0 .. $table->number_of_rows - 1 ) {
+            if ( Util::trimmed( $table->read_row($cursor)->{$column_name} ) eq
+                 $value )
+            {
+                return 1;
+            }
+        }
+        return 0;
     }
 }
 1;

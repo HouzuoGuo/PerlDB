@@ -54,6 +54,11 @@ TRIGGER: {
 
     # Table triggers, all triggers in-use must be defined here
     # Format: 'function name as in trigger table'=>reference_to_function
-    our %TRIGGERS = ( 'pk' => \&Trigger::pk, 'fk' => \&Trigger::fk );
+    our %TRIGGERS = (
+                      'pk'                => \&Trigger::pk,
+                      'fk'                => \&Trigger::fk,
+                      'update_restricted' => \&Trigger::update_restricted,
+                      'delete_restricted' => \&Trigger::delete_restricted
+    );
 }
 1;
