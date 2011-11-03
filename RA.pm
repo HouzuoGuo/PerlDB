@@ -73,6 +73,19 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
         return $self;
     }
 
+    # Relational algebra Select, using multiple conditions
+    sub multiple_select {
+
+        # Parameters: self, conditions wihch is an array of array references
+        # like this:
+        # ([alias, function, parameter], [alias, function, parameter]...)
+        my ( $self, @conditions ) = @_;
+        foreach (@conditions) {
+            $self->select( $_->[0], $_->[1], $_->[2] );
+        }
+        return $self;
+    }
+
     # Relational algebra Project
     sub project {
 
