@@ -94,6 +94,19 @@ foreach ( 0 .. $contact->number_of_rows - 1 ) {
     print Util::h2s( $contact->read_row($_) ), "\n";
 }
 
+# Remove PK constraint
+Constraint::remove_pk( $friend, 'NAME' );
+
+# Now duplicated name will not raise an exception
+$tr->insert( $friend, { 'NAME' => 'Buzz' } );
+
+# Remove FK constraint
+Constraint::remove_fk( $contact, 'NAME', $friend, 'NAME' );
+
+# Insert a NAME without corresponding FIREND.NAME will not raise an exception
+$tr->insert( $contact, { 'NAME' => 'Joshua' } );
+$tr->commit;
+
 # DELETE FROM FRIEND WHERE NAME = (SELECT NAME FROM CONTACT WHERE WEB = 'Facebook')
 # 1. Lock CONTACT table in shared mode
 $tr->s_lock($contact);
@@ -120,18 +133,4 @@ print "\nAfter delete:\n";
 foreach ( 0 .. $friend->number_of_rows - 1 ) {
     print Util::h2s( $friend->read_row($_) ), "\n";
 }
-1;
-
-# Remove PK constraint
-Constraint::remove_pk( $friend, 'NAME' );
-
-# Now duplicated name will not raise an exception
-$tr->insert( $friend, { 'NAME' => 'Buzz' } );
-
-# Remove FK constraint
-Constraint::remove_fk( $contact, 'NAME', $friend, 'NAME' );
-
-# Insert a NAME without corresponding FIREND.NAME will not raise an exception
-$tr->insert( $contact, { 'NAME' => 'Joshua' } );
-$tr->commit;
 1;

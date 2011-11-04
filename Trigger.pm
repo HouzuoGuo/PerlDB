@@ -163,7 +163,7 @@ TRIGGERS: {
         my $column_name = $params->{'column'};
 
         # Value of the column
-        my $value = Util::trimmed($params->{'row1'}->{$column_name});
+        my $value = Util::trimmed( $params->{'row1'}->{$column_name} );
 
         # Reference to FK table (table name is [0] in extra parameters)
         my $fk_table = $table->{'database'}->table( $extra_params[0] );
@@ -214,6 +214,7 @@ BEHAVIORS: {
     # Return 1 if a value is found in a column, otherwise 0
     sub found {
         my ( $value, $table, $column_name ) = @_;
+        $value = Util::trimmed($value);
         foreach my $cursor ( 0 .. $table->number_of_rows - 1 ) {
             if ( Util::trimmed( $table->read_row($cursor)->{$column_name} ) eq
                  $value )

@@ -84,12 +84,11 @@ sub remove_pk {
 
     # Query on ~before table
     $ra->prepare_table($trigger_table);
-
-    # Filter by column name
-    $ra->select( 'column', \&Filter::equals, $column_name );
-
-    # Filter by table name
-    $ra->select( 'table', \&Filter::equals, $table->{'name'} );
+    $ra->multiple_select(
+                          [ 'column',   \&Filter::equals, $column_name ],
+                          [ 'table',    \&Filter::equals, $table->{'name'} ],
+                          [ 'function', \&Filter::equals, 'pk' ]
+    );
 
     # For each row
     foreach ( @{ $ra->{'tables'}->{'~before'}->{'row_numbers'} } ) {
@@ -107,24 +106,47 @@ sub remove_fk {
     my ( $fk_table, $fk_column_name, $pk_table, $pk_column_name ) = @_;
     my $ra            = RA->new();
     my $trigger_table = $fk_table->{'database'}->table('~before');
+    $ra->prepare_table($trigger_table);
 
-    # Query on ~before table
-    $ra->prepare_table( $fk_table->{'database'}->table('~before') );
-
-    # Filter by column name
-    $ra->select( 'column', \&Filter::equals, $fk_column_name );
-
-    # Filter by table name
-    $ra->select( 'table', \&Filter::equals, $fk_table->{'name'} );
-
-    # Filter by parameter (PK table and PK column name)
-    $ra->select( 'parameters', \&Filter::equals,
-                 $pk_table->{'name'} . q{;} . $pk_column_name );
-
-    # For each row
+    # Remove constraint on FK table
+    $ra->multiple_select(
+                          [ 'table',    \&Filter::equals, $fk_table->{'name'} ],
+                          [ 'column',   \&Filter::equals, $fk_column_name ],
+                          [ 'function', \&Filter::equals, 'fk' ],
+                          [
+                             'operation', \&Filter::any_of,
+                             [ 'insert', 'update' ]
+                          ],
+                          [
+                             'parameters', \&Filter::equals,
+                             $pk_table->{'name'} . q{;} . $pk_column_name
+                          ]
+    );
     foreach ( @{ $ra->{'tables'}->{'~before'}->{'row_numbers'} } ) {
+        $trigger_table->delete_row($_);
+    }
 
-        # Delete the row (delete the constraint)
+    # Remove triggers on PK table
+    $ra            = RA->new();
+    $trigger_table = $pk_table->{'database'}->table('~before');
+    $ra->prepare_table($trigger_table);
+    $ra->multiple_select(
+                          [ 'table',  \&Filter::equals, $pk_table->{'name'} ],
+                          [ 'column', \&Filter::equals, $pk_column_name ],
+                          [
+                             'function', \&Filter::any_of,
+                             [ 'update_restricted', 'delete_restricted' ]
+                          ],
+                          [
+                             'operation', \&Filter::any_of,
+                             [ 'update', 'delete' ]
+                          ],
+                          [
+                             'parameters', \&Filter::equals,
+                             $fk_table->{'name'} . q{;} . $fk_column_name
+                          ]
+    );
+    foreach ( @{ $ra->{'tables'}->{'~before'}->{'row_numbers'} } ) {
         $trigger_table->delete_row($_);
     }
     return;

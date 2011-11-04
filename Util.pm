@@ -5,7 +5,7 @@ use warnings;
 use diagnostics;
 use Carp;
 use English qw(-no_match_vars);
-use List::MoreUtils qw{ any };
+use List::MoreUtils qw(any);
 
 # Trim string into a desired length
 sub trim {

@@ -81,6 +81,7 @@ RELATIONAL_ALGEBRA_FUNCTIONS: {
         # ([alias, function, parameter], [alias, function, parameter]...)
         my ( $self, @conditions ) = @_;
         foreach (@conditions) {
+            my $test= $_;
             $self->select( $_->[0], $_->[1], $_->[2] );
         }
         return $self;
