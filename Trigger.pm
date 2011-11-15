@@ -134,6 +134,7 @@ CONSTRAINTS: {
 
         # New value for the column
         my $new_value = $params->{'row1'}->{$column_name};
+        # KNOWN BUG: updating FK shall not use this trigger function. To be fixed.
 
         # Reference to PK table (table name is [0] in extra parameters)
         my $pk_table = $table->{'database'}->table( $extra_params[0] );
