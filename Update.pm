@@ -25,7 +25,7 @@ sub new {
 
     # 2. Perform "before" triggers
     Trigger::execute_trigger( $table, $ra, 'update',
-                              $table->read_row($row_number), $row );
+                              $row, $table->read_row($row_number) );
 
     # 3. Physically update the row
     $table->update( $row_number, $row );

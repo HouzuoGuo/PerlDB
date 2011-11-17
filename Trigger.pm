@@ -43,7 +43,7 @@ sub execute_trigger {
     # row 1, row 2
     #
     # For insert, row 1 is the new row
-    # For update, row 1 is the old row, row 2 is the new row
+    # For update, row 1 is the new row, row 2 is the old row
     # For delete, row 1 is the old row
     my ( $table, $ra, $operation, $row1, $row2 ) = @_;
 
@@ -134,7 +134,6 @@ CONSTRAINTS: {
 
         # New value for the column
         my $new_value = $params->{'row1'}->{$column_name};
-        # KNOWN BUG: updating FK shall not use this trigger function. To be fixed.
 
         # Reference to PK table (table name is [0] in extra parameters)
         my $pk_table = $table->{'database'}->table( $extra_params[0] );
@@ -192,7 +191,7 @@ TRIGGERS: {
         my $column_name = $params->{'column'};
 
         # Old value of the column
-        my $value = Util::trimmed( $params->{'row1'}->{$column_name} );
+        my $value = Util::trimmed( $params->{'row2'}->{$column_name} );
 
         # Reference to FK table (table name is [0] in extra parameters)
         my $fk_table = $table->{'database'}->table( $extra_params[0] );
