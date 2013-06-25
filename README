@@ -1,7 +1,4 @@
-Please see README.html
+Edit on 2013-06-25:
 
-Edit on 13-11-2011:
-These days I'm learning Go and I'm making a Go DBMS that resembles PerlDB at:
-https://github.com/HouzuoGuo/GoDB
-Development of PerlDB has been paused.
-
+PerlDB was written as a programming practice and is not meant for serious usage.
+There are many flaws in its implementation.
